@@ -1,6 +1,6 @@
 # True Count launch subscription pricing
 
-Research date: 2026-09-05. Decision ticket: [Launch subscription pricing evidence](../issues/08-launch-pricing-research.md).
+Research date: 2026-09-05. Decision ticket: [Launch subscription pricing evidence](https://github.com/0xRowdy/true-count/issues/9).
 
 ## Recommendation for discussion
 

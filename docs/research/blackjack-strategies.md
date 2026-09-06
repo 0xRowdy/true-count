@@ -1,6 +1,6 @@
 # Blackjack training modes and strategy evidence
 
-Research date: 2026-09-05. Resolves [Blackjack training modes and strategy evidence](../issues/10-blackjack-strategy-research.md); informs [Launch game rules and practice strategies](../issues/02-launch-rules-and-strategies.md). All launch selections below are proposals, not approved product decisions.
+Research date: 2026-09-05. Resolves [Blackjack training modes and strategy evidence](https://github.com/0xRowdy/true-count/issues/11); informs [Launch game rules and practice strategies](https://github.com/0xRowdy/true-count/issues/3). All launch selections below are proposals, not approved product decisions.
 
 ## Findings
 

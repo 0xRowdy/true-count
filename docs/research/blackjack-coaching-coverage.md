@@ -1,6 +1,6 @@
 # Blackjack coaching conventions and coverage
 
-Research date: 2026-09-05. Evidence answer for [Blackjack coaching conventions and coverage](../issues/13-blackjack-coaching-coverage.md), continuing [Blackjack training modes and strategy evidence](blackjack-strategies.md).
+Research date: 2026-09-05. Evidence answer for [Blackjack coaching conventions and coverage](https://github.com/0xRowdy/true-count/issues/14), continuing [Blackjack training modes and strategy evidence](blackjack-strategies.md).
 
 ## Conclusion
 

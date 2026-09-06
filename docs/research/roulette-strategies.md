@@ -1,6 +1,6 @@
 # Roulette strategy research
 
-Research date: 2026-09-05. Resolves [Roulette strategies across player levels](../issues/12-roulette-strategy-research.md); proposed product choices remain open in [Launch game rules and practice strategies](../issues/02-launch-rules-and-strategies.md).
+Research date: 2026-09-05. Resolves [Roulette strategies across player levels](https://github.com/0xRowdy/true-count/issues/13); proposed product choices remain open in [Launch game rules and practice strategies](https://github.com/0xRowdy/true-count/issues/3).
 
 ## Findings and scope
 

@@ -7,10 +7,10 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 The tracker is **`0xRowdy/true-count`** (public, issues enabled). `gh` infers it from the
 `origin` remote, so the commands below work from anywhere in the working tree.
 
-The `.scratch/true-count/` directory holds 14 markdown issue files plus a `map.md`, written
-under an earlier local-markdown convention and committed in the repo's first commit. They are
-**legacy**: read them for context, but publish new tickets as GitHub issues per the conventions
-below. Migrating them is a separate, explicit decision the user has not made.
+The MVP planning effort lives here as issue **#1** (`wayfinder:map`) with 14 sub-issues. It was
+migrated out of `.scratch/true-count/` on 2026-09-05; that directory has been removed, and its
+contents are recoverable from git history at `cdbb05c` if ever needed. Cited evidence now lives
+in `docs/brief.md` and `docs/research/`.
 
 ## Conventions
 
