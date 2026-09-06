@@ -2,17 +2,15 @@
 
 Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
 
-## Repo status (read this first)
+## Repo status
 
-This repo is **not yet a git clone with a GitHub remote**. Until it is, `gh` cannot infer the
-repo and every command below will fail. Before using any of them, confirm `git remote -v`
-points at a GitHub repository; if it doesn't, stop and ask the user rather than guessing a
-repo or creating one.
+The tracker is **`0xRowdy/true-count`** (public, issues enabled). `gh` infers it from the
+`origin` remote, so the commands below work from anywhere in the working tree.
 
 The `.scratch/true-count/` directory holds 14 markdown issue files plus a `map.md`, written
-under an earlier local-markdown convention. They are **legacy**: read them for context, but
-publish new tickets as GitHub issues per the conventions below. Migrating them is a separate,
-explicit decision the user has not made.
+under an earlier local-markdown convention and committed in the repo's first commit. They are
+**legacy**: read them for context, but publish new tickets as GitHub issues per the conventions
+below. Migrating them is a separate, explicit decision the user has not made.
 
 ## Conventions
 
