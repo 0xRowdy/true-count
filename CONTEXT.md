@@ -46,17 +46,59 @@ Simulated table-game play without a required strategy to follow.
 **Strategy adherence**:
 How consistently a player follows the selected strategy, measured separately from financial results.
 
+**Strategy override**:
+A player's explicit choice to depart from the selected strategy's prescribed action or bet. It is distinct from following a playing deviation prescribed by that strategy.
+
+**Strategy revision**:
+A saved version of a strategy's instructions. A practice session follows one revision throughout, and its results retain that revision as their reference.
+
+**Legal fallback**:
+An alternative prescribed action when the preferred action is unavailable under the current table conditions or available balance.
+
+**Pending strategy action**:
+A prescribed action or adjustment waiting to execute, distinct from a game outcome that has already settled. Pausing the action does not reverse that outcome or its payout.
+
+**Final settlement**:
+The resolution of outstanding wagers after a strategy stops adding bets, with legally removable wagers returned.
+
 **Practice session**:
-A period of simulated play with its own performance history and simulated balance.
+A period of simulated play at one game, explicitly started and explicitly ended by stopping, resetting, or switching games. It has its own performance history, simulated balance, and deviation log.
 
 **Casino session**:
-A manually recorded period of real casino play, tracked separately from simulated practice.
+A manually recorded period of real casino play at one game, bounded the same way as a practice session. It records a game, a date, one or more buy-ins, and a cash-out; table conditions and casino name are optional. It never carries a deviation log, since self-reported play cannot be verified against a strategy. Casino sessions are strictly private and never eligible for community or standardized-comparison features.
+
+**Rebuy**:
+An additional buy-in recorded within a session before its final cash-out. A session's net result sums all its buy-ins, including rebuys, against the one final cash-out.
+
+**Visit**:
+An automatic grouping of casino sessions that share the same casino name and date, used only to present a rolled-up view of a night's play. A visit has no identity, record, or fields of its own beyond that shared casino name and date.
+
+**Deviation event**:
+A single point during a practice session where the player's actual action differed from the strategy's prescribed action, recording whether the player retried into the correct action or explicitly overrode it (see Strategy override). Deviation events are logged individually as they occur and are never edited afterward. A session's deviation log is the ordered record of its deviation events; an empty log means the session was flawless.
 
 **Bankroll**:
 A tracked balance allocated to play, rather than money held or wagered by True Count. Simulated and real-play balances remain separate.
 
 **Community strategy**:
 A strategy submitted by an authenticated user with a profile for others to practice and rate. Its popularity and reported performance are distinct measures.
+
+**Standardized simulation**:
+An app-run evaluation of a strategy revision under defined comparison conditions. It supplies evidence for public performance comparisons, separate from community practice and self-reported casino results.
+
+**Benchmark profile**:
+A defined set of table conditions, starting bankroll, base betting unit, and session length used to compare strategy revisions through standardized simulation.
+
+**Session drawdown**:
+The fall from a session's previous balance peak, with outstanding stakes valued at their original amount until resolution. Maximum session drawdown is the largest such fall during the session, including final settlement.
+
+**Strategy rating**:
+A player's assessment of a community strategy's practice usefulness and clarity, tied to the revision they practiced. It is distinct from the strategy's financial performance.
+
+**Strategy remix**:
+A separately published strategy derived from another strategy revision, retaining attribution and a link to its source. It has its own ratings and performance evidence.
+
+**Wager outcome**:
+The win, loss, or push of an individual resolved wager, determined by its net result after applicable commissions. It is distinct from the combined result of simultaneous wagers or an entire session.
 
 **Offline game selection**:
 The single game a free account selects for offline play. Premium accounts can access all three launch games offline.
