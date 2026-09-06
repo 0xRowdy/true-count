@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>True Count · Strategy builder prototype</title>
+<style>
+:root{font:16px/1.5 system-ui,sans-serif;color:#22302b;background:#f3f5f1;accent-color:#246b50}*{box-sizing:border-box}body{max-width:1080px;margin:auto;padding:24px}h1{font-size:30px;margin:8px 0}h2{font-size:20px;margin:0 0 12px}h3{font-size:16px}p{margin:8px 0 16px}.muted,small{color:#56665e}.tag{font-size:12px;font-weight:700;letter-spacing:.1em;color:#246b50}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}section{background:white;border:1px solid #d7dfd7;border-radius:12px;padding:20px;margin:16px 0}button,select,input{font:inherit;border:1px solid #aabaae;border-radius:6px;padding:9px;background:white;color:inherit}button{cursor:pointer}button:hover{background:#eaf2ec}button.primary{background:#246b50;color:white;border-color:#246b50}button:disabled{opacity:.45;cursor:default}input[type=number]{width:100px}label{display:block;margin:12px 0}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.rule{padding:12px;background:#f3f5f1;border-radius:8px;margin:10px 0}.rule select,.rule input{margin:4px 0}dl{display:grid;grid-template-columns:1fr 1fr;gap:10px}dt{color:#56665e}dd{margin:0;text-align:right}.notice{border-left:4px solid #246b50;padding:10px 14px;background:#eef5ef;white-space:pre-line}.tabs{display:flex;gap:8px;flex-wrap:wrap}.tabs button[aria-selected=true]{background:#246b50;color:white}#history{padding-left:22px;max-height:180px;overflow:auto}details{margin-top:14px}@media(max-width:750px){.grid{display:block}body{padding:14px}section{padding:16px}}
+</style>
+<header><span class="tag">TRUE COUNT / THROWAWAY PROTOTYPE</span><h1>Build a strategy. See what it does.</h1>
+<p>Can guided sentences make custom rules, defaults, conflicts, and paused bets understandable across three games?</p>
+<p class="muted">First discussion slice: representative examples, scripted outcomes, and in-memory drafts. This is not a full game engine or a validated blackjack coaching reference. Override progression, full settlement after stopping, Check feedback, and tutorial design still need decisions.</p></header>
+<section><div class="row"><label>Game <select id="game"><option value="blackjack">Blackjack</option><option value="craps">Craps</option><option value="roulette">Roulette</option></select></label><button class="primary" id="customize">Customize a strategy</button><button id="blank">Start blank</button><button id="save">Save draft</button><button id="restore">Restore saved draft</button></div><small id="saved">Drafts live only in this open page.</small></section>
+<div class="grid"><section><h2>1. Write the instructions</h2><p id="template" class="muted"></p><div id="rules"></div>
+<label><input type="checkbox" id="conflict"> Add a conflicting instruction for the same action</label><label id="priorityRow">Resolve overlap <select id="priority"><option value="unresolved">Not resolved</option><option value="primary">Explicitly prefer my original rule</option><option value="other">Explicitly prefer the added rule</option></select></label>
+<h3>When no custom rule matches</h3><select id="fallback"><option value="reference">Use the built-in playing reference</option><option value="pause">Pause and ask me</option></select><p id="defaultNote" class="muted"></p>
+<h3>Generated description</h3><p id="summary"></p></section>
+<section><h2>2. Preview the situation</h2><p id="situation"></p><div class="row"><label>Available balance <input id="balance" type="number" min="0" step="1"></label><label id="limitLabel">Bet maximum <input id="limit" type="number" min="10" step="1"></label></div><div id="conditions"></div><dl id="state"></dl><div id="explanation" class="notice" role="status" aria-live="polite"></div>
+<h3>Try it freely</h3><div class="row" id="actions"></div><details><summary>What happened</summary><ol id="history"></ol></details></section></div>
+<section><h2>3. Walk through an awkward case</h2><div id="tabs" class="tabs" role="tablist"></div><p id="walkDescription"></p><div id="steps" class="row"></div><small>Choosing a walkthrough resets this preview. Editing or using free-play controls ends the walkthrough so its steps cannot become misleading.</small></section>
+<script>
+// Pure, deliberately bounded model. No DOM access in this block.
+const Demo=(()=>{
+const fresh=(game,blank=false)=>({game,enabled:!blank,amount:game==='craps'?12:10,threshold:2,play:'stand',count:2,point:true,conflict:false,priority:'unresolved',fallback:game==='blackjack'?'reference':'none',balance:500,limit:1000,stake:0,multiplier:1,cap:32,phase:'ready',held:[],history:[],message:'Edit an instruction, then preview it.'});
+const explain=s=>s.game==='blackjack'?`When true count is at least ${s.threshold}, ${s.play} on this example hand. Before a hand, use ${s.amount} × the introductory count schedule. Custom playing instructions are not claims of improved play.`:s.game==='craps'?`When the point is on and neither place bet exists, place ${s.amount} on 6 and ${s.amount} on 8 together. Collect payouts and retain stakes; place bets are off on come-out.`:`Start at ${s.amount} on red. Double after a loss, up to ${s.cap} base units. A win completes the cycle; a loss at the cap terminates it. Starting another cycle is explicit.`;
+const evaluate=(s,kind='bet')=>{
+ if(s.conflict&&s.priority==='unresolved')return {error:'Two rules prescribe different actions for the same target. Choose an explicit priority before running.'};
+ if(s.phase==='done'&&s.game==='roulette')return {error:'This cycle has ended. Start another cycle explicitly, using the remaining balance.'};
+ if(kind==='play'){
+  if(s.game!=='blackjack')return {error:'Playing decisions are only shown in the blackjack example.'};
+  if(!s.enabled||s.count<s.threshold)return s.fallback==='pause'?{error:'No custom rule matches. Your default is to pause.'}:{action:'stand',reason:'No custom rule matches. Use the example built-in reference: stand on hard 17 against dealer 6.'};
+  const action=s.conflict&&s.priority==='other'?'hit':s.play;
+  if(action==='double')return {error:'This hard 17 has three cards. Doubling is illegal. No action was taken; the fallback interaction is still to be decided.'};
+  return {action,reason:`True count ${s.count} meets your threshold ${s.threshold}. Your ${s.conflict?'explicitly preferred ':''}custom rule says ${action}.`};
+ }
+ if(s.stake>0)return {error:'Settle the outstanding roulette wager before placing another.'};
+ if(!s.enabled)return s.fallback==='pause'?{error:'No betting rule matches. Your default is to pause.'}:{bets:[],reason:'No betting rule matches: place no new bets. Existing bets remain where legal.'};
+ if(s.game==='craps'&&(!s.point||s.held.length))return {bets:[],reason:!s.point?'Come-out: no new place bets. Existing place bets are off.':'Both place bets already exist. Keep them unchanged.'};
+ const base=s.conflict&&s.priority==='other'?s.amount*2:s.amount;
+ const schedule=s.count<1?1:s.count===1?2:s.count===2?4:s.count===3?6:8;
+ const bets=s.game==='craps'?[{target:'Place 6',amount:base},{target:'Place 8',amount:base}]:[{target:s.game==='blackjack'?'Initial wager':'Red',amount:base*(s.game==='roulette'?s.multiplier:schedule)}];
+ if(!Number.isInteger(base)||base<=0)return {error:'Enter a positive whole amount. The draft remains saveable.'};
+ if(s.game==='craps'&&base%6!==0)return {error:'Place 6 and 8 require multiples of 6. Edit the amount; nothing will be rounded.'};
+ if(s.game==='roulette'&&s.multiplier>s.cap)return {error:'The next required wager exceeds the strategy cap. No new bet.'};
+ if(bets.some(b=>b.amount<10||b.amount>s.limit))return {error:`A required wager is outside this table’s 10–${s.limit} limits. Choose a compatible table or edit your private strategy; no resizing.`};
+ const total=bets.reduce((n,b)=>n+b.amount,0);
+ if(total>s.balance)return {error:`The complete action needs ${total}; only ${s.balance} is available. No part was placed. Existing committed bets are unchanged.`};
+ return {bets,reason:bets.map(b=>`${b.target}: ${b.amount}`).join(' + ')+` = ${total} total. All proposed bets can be funded together.`};
+};
+const act=(previous,action)=>{
+ const s=structuredClone(previous);let m='';
+ if(action==='preview'||action==='play') {const e=evaluate(s,action==='play'?'play':'bet');m=e.error||e.reason;}
+ if(action==='place'){
+  const e=evaluate(s);m=e.error||e.reason;
+  if(!e.error&&e.bets.length){
+   if(s.game==='blackjack')m+=' This slice previews the initial wager only; it does not deal or debit a blackjack hand.';
+   else {const total=e.bets.reduce((n,b)=>n+b.amount,0);s.balance-=total;if(s.game==='craps')s.held=e.bets;else s.stake=total;m+=' Placed.';}
+  }
+ }
+ if(action==='win'||action==='loss'){
+  if(s.game!=='roulette'||!s.stake)m='Place a roulette wager first.';
+  else{const won=action==='win';if(won)s.balance+=s.stake*2;s.stake=0;if(won||s.multiplier>=s.cap){s.phase='done';m=won?'Win: cycle complete. Restart explicitly with the remaining balance.':'Loss at cap: cycle terminated.';}else{s.multiplier*=2;m=`Loss: next required wager is ${s.multiplier} base units.`;}}
+ }
+ if(action==='restart'){
+  if(s.stake)m='Resolve the outstanding wager first.';
+  else if(s.game!=='roulette')m='Cycle restart is illustrated in roulette.';
+  else if(s.phase!=='done')m='The current cycle has not completed. Mid-cycle stopping is outside this first slice.';
+  else{s.multiplier=1;s.phase='ready';m='New cycle. Strategy state reset; balance unchanged.';}
+ }
+ if(action==='six'){
+  const bet=s.held.find(b=>b.target==='Place 6');
+  if(s.game!=='craps'||!bet)m='Place the 6 and 8 first.';
+  else if(!s.point)m='Come-out: place bets are off. No place payout or loss.';
+  else{s.balance+=bet.amount*7/6;m=`Scripted roll of 6 with table point 5: collect ${bet.amount*7/6}; keep both stakes.`;}
+ }
+ if(action==='seven'){
+  if(s.game!=='craps')m='This outcome belongs to craps.';
+  else if(!s.point)m='Come-out: place bets are off and remain on the table.';
+  else{s.held=[];s.point=false;m='Seven-out: place stakes lost. The table returns to come-out.';}
+ }
+ s.message=m;s.history.push(m);return s;
+};
+return {fresh,explain,evaluate,act};
+})();
+</script>
+<script>
+const $=id=>document.getElementById(id);let s=Demo.fresh('blackjack'),draft=null,walk=null,step=0;
+const scenarios=[
+ {name:'Blackjack default',game:'blackjack',description:'A custom count condition stops matching. The visible default supplies the playing decision.',steps:[['Preview matching rule',()=>dispatch('play',true)],['Lower true count to 0',()=>patch({count:0})],['Preview fallback',()=>dispatch('play',true)]]},
+ {name:'Rule conflict',game:'craps',description:'Two rules disagree on the place amounts. No bets run until priority is explicit.',steps:[['Add conflicting rule',()=>patch({conflict:true})],['Try to place bets',()=>dispatch('place',true)],['Prefer original rule',()=>patch({priority:'primary'})],['Place the pair',()=>dispatch('place',true)]]},
+ {name:'Only 20 available',game:'craps',description:'The pair costs 24. A short balance must never result in only one bet being placed.',steps:[['Set balance to 20',()=>patch({balance:20})],['Try the pair',()=>dispatch('place',true)]]},
+ {name:'Invalid increments',game:'craps',description:'A 10-unit table minimum does not make a 10-unit place 6 legal.',steps:[['Set each amount to 10',()=>patch({amount:10})],['Preview invalid bets',()=>dispatch('preview',true)],['Edit each to 12',()=>patch({amount:12})],['Preview legal pair',()=>dispatch('preview',true)]]},
+ {name:'Roulette limit',game:'roulette',description:'After a loss, a doubled wager exceeds a 10-unit table maximum. Nothing is silently reduced.',steps:[['Set maximum to 10',()=>patch({limit:10})],['Place 10',()=>dispatch('place',true)],['Lose on black',()=>dispatch('loss',true)],['Try required 20',()=>dispatch('place',true)]]},
+ {name:'Explicit restart',game:'roulette',description:'A win ends the cycle. A new cycle preserves the remaining balance.',steps:[['Place 10',()=>dispatch('place',true)],['Win on red',()=>dispatch('win',true)],['Try another bet',()=>dispatch('place',true)],['Start next cycle',()=>dispatch('restart',true)]]}
+];
+function options(values,selected){return values.map(([v,t])=>`<option value="${v}" ${v===selected?'selected':''}>${t}</option>`).join('')}
+function patch(values){s={...s,...values,message:'Preview conditions changed. Evaluate to see the result.'};render()}
+function dispatch(a,guided=false){if(!guided)walk=null;s=Demo.act(s,a);render()}
+function edit(id,key,convert=x=>x){$(id).onchange=e=>{walk=null;patch({[key]:convert(e.target.value)})}}
+function render(){
+ $('game').value=s.game;$('balance').value=s.balance;$('limit').value=s.limit;$('conflict').checked=s.conflict;$('priority').value=s.priority;$('priorityRow').hidden=!s.conflict;
+ $('template').textContent=s.game==='blackjack'?'Custom playing rule + introductory bet schedule':s.game==='craps'?'Customize flat place 6 and 8':'Customize capped Martingale';
+ let rule='<label><input id="enabled" type="checkbox" '+(s.enabled?'checked':'')+'> Enable these custom instructions</label>';
+ if(s.game==='blackjack')rule+=`<div class="rule">On hard 17 against dealer 6, when true count is at least <input id="threshold" aria-label="True count threshold" type="number" value="${s.threshold}"> → <select id="playRule" aria-label="Playing action">${options([['stand','Stand'],['hit','Hit'],['double','Double']],s.play)}</select>.</div>`;
+ rule+=`<div class="rule">${s.game==='craps'?'When the point is on → place':'Start with'} <input id="amount" aria-label="Starting amount" type="number" min="1" step="1" value="${s.amount}"> ${s.game==='craps'?'each on 6 and 8.':s.game==='roulette'?'on red. After a loss → double.':'per base unit in the count-based bet schedule.'}</div>`;
+ if(s.game==='roulette')rule+=`<div class="rule">Stop after a loss at <select id="cap" aria-label="Progression cap">${options([['4','4'],['8','8'],['16','16'],['32','32']],String(s.cap))}</select> base units, or when the required bet cannot be placed.</div>`;
+ if(s.conflict)rule+='<p class="notice">Added rule: '+(s.game==='blackjack'?'Hit in the same playing situation; double the scheduled wager.':'Use twice the original amount for the same bet targets.')+'</p>';
+ $('rules').innerHTML=rule;$('enabled').onchange=e=>{walk=null;patch({enabled:e.target.checked})};edit('amount','amount',Number);if(s.game==='blackjack'){edit('threshold','threshold',Number);edit('playRule','play')}if(s.game==='roulette')edit('cap','cap',Number);
+ $('fallback').innerHTML=options(s.game==='blackjack'?[['reference','Use the built-in playing reference'],['pause','Pause and ask me']]:[['none','Place no new bets; retain existing bets where legal'],['pause','Pause and ask me']],s.fallback);
+ $('defaultNote').textContent=s.game==='blackjack'?'Betting fallback: place no new bets. The sample hand is 10 + 5 + 2 against dealer 6, so doubling is illegal.':'Defaults are visible and editable. Existing committed wagers cannot be silently cancelled.';
+ $('summary').textContent=(s.enabled?Demo.explain(s):'No custom instructions enabled.')+' '+(s.conflict?'Overlap: '+(s.priority==='unresolved'?'unresolved.':s.priority==='primary'?'original rule explicitly wins.':'added rule explicitly wins.'):'');
+ $('situation').textContent=s.game==='blackjack'?'Playing preview: hard 17 (three cards) against dealer 6. Bet preview is a separate pre-hand checkpoint.':s.game==='craps'?(s.point?'Table point is 5.':'Come-out; place bets are off.'):'Single-zero roulette. Choose a scripted red win or black loss after placing a wager.';
+ $('conditions').innerHTML=s.game==='blackjack'?`<label>Actual integer true count <input id="count" type="number" step="1" value="${s.count}"></label>`:s.game==='craps'?`<label><input id="point" type="checkbox" ${s.point?'checked':''}> Point is on (5)</label>`:'';
+ if(s.game==='blackjack')edit('count','count',Number);if(s.game==='craps')$('point').onchange=e=>{walk=null;patch({point:e.target.checked})};
+ const fields=[['Available balance',s.balance],['Outstanding wagers',s.game==='craps'?(s.held.map(b=>b.target+': '+b.amount).join(', ')||'None'):s.stake||'None'],['Cycle',s.game==='roulette'?(s.phase==='done'?'Ended':`Next stake: ${s.multiplier} base units`):'Not used in this example']];
+ $('state').replaceChildren(...fields.flatMap(([k,v])=>{const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=k;dd.textContent=v;return[dt,dd]}));$('explanation').textContent=s.message;
+ const actions=[['preview','Preview bets'],...(s.game==='blackjack'?[['play','Preview playing decision']]:[['place','Place prescribed bets']]),...(s.game==='roulette'?[['win','Red wins'],['loss','Black wins'],['restart','Start next cycle']]:s.game==='craps'?[['six','Roll 6'],['seven','Roll 7']]:[])];
+ $('actions').replaceChildren(...actions.map(([a,label])=>{let b=document.createElement('button');b.textContent=label;b.onclick=()=>dispatch(a);return b}));
+ $('history').replaceChildren(...s.history.map(t=>{let li=document.createElement('li');li.textContent=t;return li}));
+ $('tabs').replaceChildren(...scenarios.map((w,i)=>{const b=document.createElement('button');b.textContent=w.name;b.setAttribute('role','tab');b.setAttribute('aria-selected',walk===i);b.onclick=()=>{s=Demo.fresh(w.game);walk=i;step=0;render()};return b}));
+ $('walkDescription').textContent=walk===null?'Select a walkthrough above.':scenarios[walk].description;
+ $('steps').replaceChildren(...(walk===null?[]:scenarios[walk].steps.map(([title,fn],i)=>{const b=document.createElement('button');b.textContent=(i<step?'✓ ':`${i+1}. `)+title;b.disabled=i!==step;b.onclick=()=>{fn();step++;render()};return b})));
+}
+$('game').onchange=e=>{s=Demo.fresh(e.target.value);walk=null;render()};$('customize').onclick=()=>{s=Demo.fresh(s.game);walk=null;render()};$('blank').onclick=()=>{s=Demo.fresh(s.game,true);walk=null;render()};
+$('save').onclick=()=>{draft=structuredClone(s);$('saved').textContent='Draft saved in this page, including incomplete rules. Closing the page clears it.'};
+$('restore').onclick=()=>{if(draft){s=structuredClone(draft);walk=null;render();$('saved').textContent='Saved draft restored.'}else $('saved').textContent='No saved draft yet.'};
+edit('balance','balance',v=>Math.max(0,Number(v)));edit('limit','limit',v=>Math.max(10,Number(v)));edit('fallback','fallback');edit('priority','priority');$('conflict').onchange=e=>{walk=null;patch({conflict:e.target.checked,priority:'unresolved'})};render();
+</script></html>
