@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>True Count — community lifecycle prototype</title>
+<style>
+body{font:16px/1.5 system-ui,sans-serif;background:#f4f6f5;color:#1d302a;max-width:1100px;margin:32px auto;padding:0 20px}h1{font-size:30px;margin-bottom:8px}h2{font-size:21px}p{max-width:850px}.note{border-left:4px solid #247761;padding:12px 18px;background:#e7f1ec}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.card,section{background:white;border:1px solid #d8e1dc;border-radius:8px;padding:18px;margin:14px 0}.card{margin:0}dl{margin:0}dt{font-size:13px;color:#577067;margin-top:12px}dd{margin:2px 0;font-weight:600}button{font:inherit;border:1px solid #aac4b7;border-radius:5px;background:#fff;color:#244d3c;padding:8px 12px;margin:4px;cursor:pointer}button:hover,button[aria-selected=true]{background:#e4f1e9}button:disabled{opacity:.45;cursor:default}#message{min-height:3em}ol{padding-left:24px}li{margin:8px 0}.small{font-size:14px;color:#536c62}a{color:#17684f}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid #e5ebe7;padding:7px}.tabs{display:flex;flex-wrap:wrap}#walkthrough button{margin-left:0}
+</style>
+<h1>Community updates, sharing, and removal</h1>
+<p class="note"><strong>Throwaway planning prototype.</strong> Does this behavior match your expectations when an author updates a strategy, you withdraw shared practice results, or a public listing disappears? Everything is in memory. Sessions and results below are illustrative fixtures; this is not a game engine or a performance calculation.</p>
+<p class="small">Assumptions under review: popularity follows practice-sharing consent; public removal preserves existing saved executable copies; removed source links show an unavailable-source record. Rating and publishing examples assume premium accounts.</p>
+<h2>Current state</h2>
+<div id="state" class="grid"></div>
+<p id="message" role="status" aria-live="polite" class="note"></p>
+<section><h2>Your private session history</h2><div id="history"></div></section>
+<section><h2>Explore freely</h2><div id="actions"></div></section>
+<section><h2>Guided walkthroughs</h2><div id="tabs" class="tabs" role="tablist"></div><div id="walkthrough"></div></section>
+<p class="small">Resetting this demo clears its temporary state. No account, server, storage, real publication, or moderation action is connected.</p>
+<script>
+// Pure, portable state model. No DOM or persistence.
+const CommunityDemo = (() => {
+  const initial = () => ({current:1,saved:1,active:null,history:[],sharing:false,rating:null,listing:'published',blocked:false,remix:null,message:'You have saved revision 1. Practice sharing is off. The public revision has an illustrative completed benchmark.'});
+  const reduce = (previous, action) => {
+    if(action === 'reset') return initial();
+    const s=structuredClone(previous);
+    const tell=message => ({...s,message});
+    if(action==='start') {
+      if(s.active) return tell('Finish the current session first.');
+      s.active={revision:s.saved};
+      return tell(`Started revision ${s.saved}. This session will retain that revision.`);
+    }
+    if(['finishWin','finishLoss','finishShort'].includes(action)) {
+      if(!s.active) return tell('Start a practice session first.');
+      const count=action==='finishShort'?10:20;
+      const net=action==='finishLoss'?-10:10;
+      s.history.push({id:s.history.length+1,revision:s.active.revision,wagers:count,net,contributed:s.sharing});
+      s.active=null;
+      return tell(`Ended a fixture session with ${count} resolved wagers and net ${net>0?'+':''}${net}. ${s.sharing?'It contributes automatically, including losses.':'It remains private.'}`);
+    }
+    if(action==='publishUpdate') {
+      if(s.listing!=='published') return tell('The withdrawn or removed listing cannot publish an update in this walkthrough. Reset to explore updates.');
+      s.current++;
+      return tell(`The author published revision ${s.current}. Your saved and active revisions stay as they were. New evidence and ratings are pending.`);
+    }
+    if(action==='adopt') {
+      if(s.listing!=='published'||s.blocked) return tell('This public update is unavailable. Your existing saved copy is still usable.');
+      s.saved=s.current;
+      return tell(`Revision ${s.saved} is selected for your next session. An active session keeps its original revision.`);
+    }
+    if(action==='rate') {
+      if(s.listing!=='published'||s.blocked) return tell('The listing is unavailable for a new rating in this walkthrough.');
+      const practiced=s.history.some(h=>h.revision===s.saved&&h.wagers>=20);
+      if(!practiced) return tell(`Finish a session with at least 20 resolved wagers on revision ${s.saved} before rating it. Sharing is not required.`);
+      s.rating={revision:s.saved,usefulness:4,clarity:5};
+      return tell(`Your one active rating now refers to revision ${s.saved}. Its illustrative scores are usefulness 4 and clarity 5.`);
+    }
+    if(action==='shareOn') {s.sharing=true;return tell('Future completed sessions contribute automatically. Earlier private or withdrawn sessions are not re-added.');}
+    if(action==='shareOff') {
+      s.sharing=false;s.history=s.history.map(h=>({...h,contributed:false}));
+      return tell('All your practice contributions were removed from public practice aggregates and popularity. Private history and deliberately submitted ratings remain.');
+    }
+    if(action==='removeRating') {s.rating=null;return tell('Your public rating was removed. Your private practice history remains.');}
+    if(action==='remix') {
+      s.remix={source:s.saved};
+      return tell(`You created a separate remix of saved revision ${s.saved}. It has source attribution and fresh ratings/evidence.`);
+    }
+    if(action==='block') {s.blocked=true;return tell('You hid this author from your community view. The global listing, ratings, and your saved copy were not deleted.');}
+    if(action==='unblock') {s.blocked=false;return tell('The author is no longer hidden by your personal block. Public removal, if any, still applies.');}
+    if(action==='withdraw') {s.listing='withdrawn';return tell('The author withdrew the public listing. New discovery/downloads stop; existing saved copies and remix attribution remain.');}
+    if(action==='moderate') {s.listing='removed';return tell('A moderator removed the public listing and its offending text. Existing executable copies remain; source links show unavailable content.');}
+    return tell('No change.');
+  };
+  const project=s=>({
+    publicVisible:s.listing==='published',
+    visibleToYou:s.listing==='published'&&!s.blocked,
+    contributions:s.history.filter(h=>h.contributed),
+    popularity:s.history.some(h=>h.contributed&&h.wagers>=20)?1:0,
+    currentRating:s.rating?.revision===s.current?s.rating:null,
+    source:s.remix?(s.listing==='published'?`Source revision ${s.remix.source}`:`Unavailable source · revision ${s.remix.source} link retained`):'No remix created'
+  });
+  return {initial,reduce,project};
+})();
+</script>
+<script>
+// Thin page shell: render the full relevant state and dispatch model actions.
+const actions=[['start','Start saved revision'],['finishWin','Finish: +10, 20 wagers'],['finishLoss','Finish: −10, 20 wagers'],['finishShort','Finish: +10, 10 wagers'],['publishUpdate','Author publishes update'],['adopt','Adopt current revision'],['rate','Submit / move rating'],['removeRating','Remove rating'],['shareOn','Enable practice sharing'],['shareOff','Withdraw practice sharing'],['remix','Create attributed remix'],['block','Block author'],['unblock','Unblock author'],['withdraw','Author withdraws listing'],['moderate','Moderator removes listing'],['reset','Reset demo']];
+const scenarios=[
+ {name:'Pinned revisions',intro:'An update arrives during practice. Watch the active session, rating eligibility, and current-revision summaries.',steps:['start','finishLoss','rate','start','publishUpdate','adopt','finishWin','rate','start','finishWin','rate']},
+ {name:'Withdraw sharing',intro:'A loss contributes automatically. Turning sharing off removes public contributions but preserves private history and a deliberately submitted rating.',steps:['shareOn','start','finishLoss','rate','shareOff','shareOn','start','finishWin']},
+ {name:'Short private practice',intro:'Ten resolved wagers do not unlock a rating. A qualifying private session does, without contributing to popularity.',steps:['start','finishShort','rate','start','finishLoss','rate']},
+ {name:'Withdrawal and copies',intro:'Create an attributed remix, block the author, then inspect voluntary withdrawal. Saved practice remains possible and the source relationship survives.',steps:['remix','block','start','finishWin','unblock','withdraw','adopt','start','finishLoss']},
+ {name:'Moderation removal',intro:'Moderation removes a listing from everyone’s public view. It does not rewrite the executable copy already saved in this proposed model.',steps:['remix','moderate','adopt','start','finishLoss']}
+];
+let state=CommunityDemo.initial(), selected=0, step=0;
+const label=action=>actions.find(a=>a[0]===action)[1];
+const button=(title,callback)=>{const b=document.createElement('button');b.textContent=title;b.onclick=callback;return b;};
+function render(){
+  const p=CommunityDemo.project(state);
+  const panels=[['Strategy listing',[
+    ['Author’s current revision',state.current],['Global publication state',state.listing],['Visible in your community view',p.visibleToYou?'Yes':'No'],['Current benchmark',state.current===1?'Illustrative completed result for revision 1':'Awaiting revision-specific evidence'],['Older benchmark','Revision 1 remains tied to revision 1']]],
+    ['Your saved practice',[
+      ['Saved revision for next session',state.saved],['Active session revision',state.active?.revision??'None'],['Private sessions retained',state.history.length],['Practice sharing',state.sharing?'On':'Off'],['Your personal block',state.blocked?'Author hidden':'None']]],
+    ['Your public contributions',[
+      ['Contributed practice sessions',p.contributions.length],['Contributed net result',p.contributions.reduce((a,h)=>a+h.net,0)],['Distinct qualifying practitioners contributed by you',p.popularity],['Your active rating',state.rating?`Revision ${state.rating.revision}: usefulness 4 / clarity 5`:'None'],['Current-revision rating contribution',p.currentRating?'Included':'None'],['Remix attribution',p.source]]]
+  ];
+  const container=document.getElementById('state');container.replaceChildren();
+  for(const [title,fields] of panels){const card=document.createElement('div');card.className='card';const heading=document.createElement('h2');heading.textContent=title;card.append(heading);const dl=document.createElement('dl');for(const [name,value] of fields){const dt=document.createElement('dt');dt.textContent=name;const dd=document.createElement('dd');dd.textContent=String(value);dl.append(dt,dd);}card.append(dl);container.append(card);}
+  document.getElementById('message').textContent=state.message;
+  const history=document.getElementById('history');history.replaceChildren();
+  if(!state.history.length){history.textContent='No sessions yet.';}else{const table=document.createElement('table');table.innerHTML='<thead><tr><th>Session</th><th>Revision</th><th>Wagers</th><th>Net</th><th>Public practice contribution</th></tr></thead>';const body=document.createElement('tbody');for(const h of state.history){const tr=document.createElement('tr');for(const value of [h.id,h.revision,h.wagers,h.net,h.contributed?'Included':'Private / withdrawn']){const td=document.createElement('td');td.textContent=value;tr.append(td);}body.append(tr);}table.append(body);history.append(table);}
+  const tabs=document.getElementById('tabs');tabs.replaceChildren();scenarios.forEach((scenario,index)=>{const b=button(scenario.name,()=>{selected=index;step=0;state=CommunityDemo.initial();render();});b.setAttribute('role','tab');b.setAttribute('aria-selected',String(index===selected));tabs.append(b);});
+  const walk=document.getElementById('walkthrough');walk.replaceChildren();const intro=document.createElement('p');intro.textContent=scenarios[selected].intro;walk.append(intro);walk.append(button('Restart this walkthrough',()=>{step=0;state=CommunityDemo.initial();render();}));const ol=document.createElement('ol');scenarios[selected].steps.forEach((action,index)=>{const li=document.createElement('li');const b=button((index<step?'Done: ':'')+label(action),()=>{state=CommunityDemo.reduce(state,action);step++;render();});b.disabled=index!==step;li.append(b);ol.append(li);});walk.append(ol);if(step===scenarios[selected].steps.length){const end=document.createElement('p');end.textContent='Walkthrough complete. Inspect the state above or restart.';walk.append(end);}
+}
+for(const [action,title] of actions)document.getElementById('actions').append(button(title,()=>{state=CommunityDemo.reduce(state,action);render();}));
+render();
+</script>
+</html>
