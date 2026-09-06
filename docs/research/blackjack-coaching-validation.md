@@ -4,7 +4,7 @@ Research date: 2026-09-06. Partial evidence for [issue #15](https://github.com/0
 
 ## Result
 
-A publicly licensed calculation package was obtained and executed. Sixty independently executed stand/hit/double values agree with a second published reference within its six-decimal rounding. Eight split values disagree. Count/depth arithmetic and an insurance probability example were calculated separately. These are actual results, not proposed tests. No complete set of validated basic/fallback tables or 22-situation Hi-Lo indices was produced.
+A publicly licensed calculation package was obtained and executed. Sixty independently executed stand/hit/double values agree with a second published reference within 0.000001; 59 are within six-decimal rounding tolerance. Eight split values disagree. Count/depth arithmetic and an insurance probability example were calculated separately. These are actual results, not proposed tests. No complete set of validated basic/fallback tables or 22-situation Hi-Lo indices was produced.
 
 The remaining work is generation and independent comparison of the curriculum under the accepted conventions, including resolution of split discrepancies. The index optimization objective and aggregation/continuation model must be recorded before claiming a unique numerical answer. A count is insufficient to identify one exact composition-dependent best action; the insurance example below demonstrates this directly.
 
@@ -34,7 +34,7 @@ All values are expected net return per original hand wager, conditioned on no de
 
 The comparator is Wizard Appendix 9 for [six-deck S17](https://wizardofodds.com/games/blackjack/appendix/9/6ds17r4/) and [six-deck H17](https://wizardofodds.com/games/blackjack/appendix/9/6dh17r4/), retrieved 2026-09-06. Both state the four-hand cap and no resplitting/drawing to split aces. They explicitly limit their treatment of cards drawn into other split hands. This is independent execution against another published analysis; the programs' complete historical independence was not established.
 
-For each of ten hands under both rules, **all three stand/hit/double values matched the published values within 0.0000005** (60 comparisons). The table prints our output; publication comparison used its displayed six decimals.
+For each of ten hands under both rules, **all three stand/hit/double values matched the published values within 0.000001** (60 comparisons). Of these, 59 differ by at most 0.0000005. H17 ten-ten versus 5 double differs by 0.000000592 (published −1.706234, calculated −1.706233408), a small unresolved numerical discrepancy exceeding simple rounding tolerance. The table prints our output; publication comparison used its displayed six decimals.
 
 | Rule | Player vs dealer | Stand | Hit | Double |
 | --- | --- | ---: | ---: | ---: |
