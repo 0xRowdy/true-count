@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>True Count · Strategy lifecycle prototype</title>
+<style>
+:root{font:16px/1.5 system-ui,sans-serif;color:#22302b;background:#f3f5f1;accent-color:#246b50}*{box-sizing:border-box}body{max-width:1150px;margin:auto;padding:24px}h1{font-size:30px;margin:8px 0}h2{font-size:20px;margin:0 0 12px}h3{font-size:16px}p{margin:8px 0 16px}small,.muted{color:#56665e}.tag{font-size:12px;font-weight:700;letter-spacing:.1em;color:#246b50}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}section{background:white;border:1px solid #d7dfd7;border-radius:12px;padding:20px;margin:16px 0}button,select,input,textarea{font:inherit;border:1px solid #aabaae;border-radius:6px;padding:8px;background:white;color:inherit}button{cursor:pointer}button:hover{background:#eaf2ec}button.primary{background:#246b50;color:white}button:disabled{opacity:.45;cursor:default}input[type=number]{width:90px}input[type=text],textarea{width:100%}label{display:block;margin:12px 0}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.rule{padding:12px;background:#f3f5f1;border-radius:8px;margin:10px 0}.rule input,.rule select{margin:4px 0;max-width:100%}.notice{border-left:4px solid #246b50;padding:10px 14px;background:#eef5ef;white-space:pre-line}dl{display:grid;grid-template-columns:1fr 1fr;gap:10px}dt{color:#56665e}dd{margin:0;text-align:right}details{margin:12px 0}#walks button[aria-selected=true]{background:#246b50;color:white}a{color:#246b50}.trace{border-bottom:1px solid #d7dfd7;padding:12px 0}.trace p{margin:4px 0}code{font:inherit;font-weight:600}@media(max-width:780px){.grid{display:block}body{padding:14px}section{padding:16px}}
+</style>
+<header><span class="tag">TRUE COUNT / THROWAWAY PROTOTYPE · SECOND SLICE</span><h1>Follow a strategy through change.</h1><p>Can the same instructions explain progression, a deliberate override, final settlement, and a saved revision?</p>
+<p class="muted">Scripted examples, not a full game engine. Blackjack uses an illustrative decision fixture; its numerical coaching reference is still awaiting independent validation. “Next session preview” resets the demo balance, not a proposed bankroll policy. Nothing persists after closing this page.</p><a href="strategy-builder.prototype.html">Open the first editor and conflict prototype</a></header>
+<section><div class="row"><label>Example <select id="example"><option value="lab">Roulette · Labouchere</option><option value="press">Craps · Press and collect</option><option value="stop">Craps · Stop with a contract</option><option value="bj">Blackjack · Legal fallback</option></select></label><button id="reset">Reset this example</button><button id="next">Next session preview</button></div><p id="revisionNotice" class="notice"></p></section>
+<div class="grid"><section><h2>1. Edit a future revision</h2><p class="muted">The active session keeps its original rules. Preview edits here before saving them for the next session.</p><div id="editor"></div><label>Author teaching note <textarea id="note" rows="2" placeholder="Optional explanation; never an executable instruction"></textarea></label><div class="row"><button id="save" class="primary">Save new revision</button><button id="saveDraft">Save incomplete draft</button><button id="restoreDraft">Restore draft</button></div><p id="saveStatus" role="status"></p><h3>Generated instructions</h3><p id="description"></p><h3>Draft preview at this situation</h3><p id="draftPreview" class="notice"></p></section>
+<section><h2>2. Follow the active revision</h2><p id="fixture"></p><dl id="state"></dl><p id="message" class="notice" role="status" aria-live="polite"></p><div id="free" class="row"></div><h3>Explanation trail</h3><p class="muted" id="trailNote"></p><div id="trail"></div></section></div>
+<section><h2>3. Guided walkthroughs</h2><div id="walks" class="row" role="tablist"></div><p id="walkText"></p><div id="steps" class="row"></div><small>Selecting a walkthrough starts a fresh example. Free-play actions leave the walkthrough. Only a saved revision can be used by a new session.</small></section>
+<section><h2>Session history in this preview</h2><div id="archives"><p>No session has been archived yet.</p></div><p class="muted">The selected revision and its executable instructions remain attached to the result. This is an in-memory illustration, not the session-ledger design.</p></section>
+<script>
+// Pure bounded model: the UI only passes actions and renders the returned state.
+const Lifecycle=(()=>{
+const copy=x=>structuredClone(x);
+function recipe(kind){return {kind,unit:kind==='press'?12:10,list:[1,2,3],cap:kind==='press'?48:32,join:'all',conditions:[{field:'balance',op:'>=',value:0},{field:'cycleProfit',op:'>=',value:-1000}],note:''}}
+function init(kind,r=recipe(kind),version=1){return {kind,recipe:copy(r),version,balance:kind==='bj'?5:kind==='stop'?100:500,origin:kind==='bj'?5:kind==='stop'?134:500,maximum:1000,sequence:copy(r.list),stake:0,held:kind==='stop'?[{target:6,amount:12,hits:0},{target:8,amount:12,hits:0}]:[],contract:kind==='stop'?10:0,point:5,phase:'ready',pending:null,cycleClosed:false,hand:1,mode:'Learn',revealed:false,trace:[],message:'Preview the current instructions, then try an action.'}}
+const total=s=>s.balance+s.stake+s.contract+s.held.reduce((n,b)=>n+b.amount,0);
+const fields=s=>({balance:s.balance,cycleProfit:total(s)-s.origin,activeBets:s.held.length+(s.stake?1:0)+(s.contract?1:0)});
+const valid=r=>{
+ if(!Number.isInteger(r.unit)||r.unit<=0)return 'A positive whole base amount is required.';
+ if(!Number.isInteger(r.cap)||r.cap<=0)return 'A positive whole cap is required.';
+ if(r.kind==='lab'&&(!r.list.length||r.list.some(x=>!Number.isInteger(x)||x<=0)))return 'Use a nonempty list of positive whole units.';
+ if(r.kind==='press'&&(r.unit%6||r.cap%r.unit||r.cap<r.unit))return 'Place amounts must be multiples of 6. In this template the cap must be a whole number of starting-amount steps.';
+ if(r.conditions.some(c=>!Number.isFinite(c.value)))return 'Every condition needs a number.';
+ return null;
+};
+const fieldNames={balance:'available balance',cycleProfit:'cycle profit/loss',activeBets:'number of active bets'};
+function matched(s,r=s.recipe){const f=fields(s);const checks=r.conditions.map(c=>c.op==='>='?f[c.field]>=c.value:f[c.field]<=c.value);return r.join==='all'?checks.every(Boolean):checks.some(Boolean)}
+function describe(r){
+ const prefix=`When ${r.join==='all'?'all':'any'} of these hold: `+r.conditions.map(c=>`${fieldNames[c.field]} ${c.op} ${c.value}`).join('; ')+'. ';
+ if(r.kind==='lab')return prefix+`Wager the first plus last list entries (a sole entry once), multiplied by ${r.unit}. Start with [${r.list.join(', ')}]. After a win remove the endpoints; after a loss append the lost stake in base units. Stop when the list empties or the next stake exceeds ${r.cap} base units, table limits, or balance.`;
+ if(r.kind==='press')return prefix+`Place ${r.unit} each on 6 and 8 after point establishment. Track hits separately: collect first, then alternate adding ${r.unit} from a payout and collecting. At ${r.cap} per number, collect. Preserve stakes/counters through a made point, off on come-out; reset after seven-out.`;
+ if(r.kind==='stop')return 'Stop adding bets. Return removable place bets. Resolve the established pass contract automatically, with no new wagers, and show final settlement before results.';
+ return 'Illustrative hard 11 against dealer 6: preferred double; fallback hit when doubling is unavailable. A one-off playing override does not change the next decision’s strategy. In Check, legality is immediate and strategy feedback is deferred.';
+}
+function proposal(s,r=s.recipe){
+ const error=valid(r);if(error)return {error};
+ if(s.phase==='ended')return {error:'This session has ended. Use a new session preview.'};
+ if(s.phase==='cycle-ended')return {error:'The cycle is complete. Start another cycle explicitly.'};
+ if(s.pending)return {error:'A settled win has a paused strategy action. Resolve it or stop before the next roll.'};
+ if(s.kind==='bj')return {amount:0,text:s.balance<10?'Preferred double needs 10 more. Applicable illustrative fallback: hit.':'The illustrative preferred action is double.'};
+ if(s.kind==='stop')return {amount:0,text:'There is an established pass 10 at point 5 plus removable place 6/8 at 12 each.'};
+ if(s.stake)return {error:'Resolve the outstanding roulette wager first.'};
+ if(!matched(s,r))return {amount:0,text:'Conditions do not match. Default: place no new bets and retain existing bets where legal.'};
+ if(s.kind==='press'&&(!s.point||s.held.length))return {amount:0,text:!s.point?'Come-out: no new place bets; existing place bets are off.':'Place bets are already present; retain their stakes and separate hit counters.'};
+ const seq=r===s.recipe?s.sequence:r.list;
+ const units=s.kind==='lab'?(seq.length===1?seq[0]:seq[0]+seq.at(-1)):1;
+ if(s.kind==='lab'&&!seq.length)return {error:'The list is empty; this cycle is complete.'};
+ if(s.kind==='lab'&&units>r.cap)return {error:`The next stake needs ${units} base units, above the strategy cap ${r.cap}.`};
+ const each=units*r.unit,amount=each*(s.kind==='press'?2:1);
+ if(each<10||each>s.maximum)return {error:`Required per-bet amount ${each} is outside table limits 10–${s.maximum}. No resizing.`};
+ if(amount>s.balance)return {error:`The complete action needs ${amount}; only ${s.balance} is available. Nothing is partially placed.`};
+ return {amount,each,text:s.kind==='lab'?`[${seq.join(', ')}] requires ${units} × ${r.unit} = ${amount} on red.`:`Place ${each} on 6 and ${each} on 8 together: ${amount} total.`};
+}
+function statusName(s){return s.pending?'Paused strategy action':({'ready':'Ready for the next action','cycle-ended':'Cycle ended','override-settlement':'Finishing override wager','hand-done':'Decision recorded','ended':'Session ended'}[s.phase]||s.phase)}
+function snapshot(s){return `Balance ${s.balance}; wagers ${total(s)-s.balance}; ${s.kind==='lab'?`list [${s.sequence.join(', ')}]`:s.kind==='bj'?`hand ${s.hand}`:s.held.map(b=>`${b.target}: stake ${b.amount}, hits ${b.hits}`).join('; ')||'no place bets'}; ${statusName(s)}.`}
+function record(s,step,rule,action,fallback='',outcome=''){s.trace.push({step,rule,action,fallback,outcome,state:snapshot(s),version:s.version})}
+function event(prior,name){const s=copy(prior);let m='';
+ if(s.phase==='ended'&&!['reveal'].includes(name)){s.message='This session has ended. Start a new session preview.';return s}
+ if(name==='preview')m=proposal(s).error||proposal(s).text;
+ if(name==='place'){
+  const p=proposal(s);m=p.error||p.text;
+  if(!p.error&&p.amount){s.balance-=p.amount;if(s.kind==='lab')s.stake=p.amount;else s.held=[{target:6,amount:p.each,hits:0},{target:8,amount:p.each,hits:0}];record(s,'Before betting','Entry conditions match',p.text);m+=' Placed.';}
+ }
+ if(name==='override'){
+  if(s.kind!=='lab')m='The betting override example uses roulette.';
+  else if(s.stake||s.phase!=='ready'||s.pending)m='Finish the current action before overriding.';
+  else if(s.balance<20||s.maximum<20)m='The alternative wager of 20 is unavailable. Legality still applies.';
+  else{const p=proposal(s);if(!p.error&&p.amount===20)m='20 already follows this prescription; use Place prescribed bets.';
+   else{s.balance-=20;s.stake=20;s.phase='override-settlement';m='Explicit override: placed 20. The progression is paused; resolve this bet before starting a new cycle.';record(s,'Deliberate betting override',p.error||p.text,'Place 20; do not mutate the progression list','Finish the actual wager, then restart explicitly');}}
+ }
+ if(name==='win'||name==='loss'){
+  if(s.kind!=='lab'||!s.stake)m='Place a roulette wager first.';
+  else{const won=name==='win',paid=s.stake,overridden=s.phase==='override-settlement';if(won)s.balance+=paid*2;s.stake=0;
+   if(overridden){s.phase='cycle-ended';m='Override wager settled. The original list was not advanced. Start a new cycle explicitly.';}
+   else{if(won)s.sequence=s.sequence.length<=2?[]:s.sequence.slice(1,-1);else s.sequence.push(paid/s.recipe.unit);if(!s.sequence.length)s.phase='cycle-ended';m=won?'Win: remove the endpoints.':'Loss: append the lost stake in base units.';if(s.phase==='cycle-ended')m+=' Cycle complete.';}
+   record(s,'After the spin',overridden?'Override settlement; normal progression suspended':won?'Win adjustment':'Loss adjustment',m,'',`${won?'Won':'Lost'} ${paid}`);
+  }
+ }
+ if(name==='restart'){
+  if(s.phase!=='cycle-ended'||s.stake||s.contract||s.held.length)m='A cycle can restart only after it has ended and all outstanding wagers are resolved.';
+  else{s.sequence=copy(s.recipe.list);s.origin=s.balance;s.phase='ready';m='Explicit restart: reset to the active revision’s initial list. Remaining balance unchanged.';record(s,'New cycle','Explicit restart',m);}
+ }
+ if(name==='overridePress'){
+  if(s.kind!=='press'||!s.pending)m='There is no paused press to override.';
+  else{const returned=s.held.reduce((n,b)=>n+b.amount,0);s.balance+=returned;s.held=[];s.pending=null;s.phase='cycle-ended';m=`Explicit override: collect instead of pressing. The payout was already credited; return place stakes ${returned}. Restart the cycle explicitly.`;record(s,'Override paused press','Suspend the progression',m);}
+ }
+ if(name==='six'||name==='eight'){
+  if(s.kind!=='press')m='These outcomes belong to the press-and-collect example.';
+  else if(s.pending)m='Resolve the paused press before another roll.';
+  else if(!s.point)m='Place bets are off on come-out; no place payout or loss.';
+  else{const target=name==='six'?6:8,b=s.held.find(b=>b.target===target);
+   if(!b)m='Place the pair first.';
+   else{const profit=b.amount*7/6;s.balance+=profit;const hit=b.hits+1,press=hit%2===0&&b.amount<s.recipe.cap;
+    if(press&&b.amount+s.recipe.unit>s.maximum){s.pending={target,hit,amount:s.recipe.unit};m=`Paid ${profit} for the settled win. Press to ${b.amount+s.recipe.unit} exceeds table maximum ${s.maximum}: pause the press, retaining its prior hit counter and existing stake.`;}
+    else{b.hits=hit;if(press){s.balance-=s.recipe.unit;b.amount+=s.recipe.unit;m=`Number ${target}, hit ${hit}: press ${s.recipe.unit} from payout ${profit}.`;}else m=`Number ${target}, hit ${hit}: collect ${profit}.`;}
+    record(s,`Roll ${target} (table point 5)`,press?'Even hit: press unless capped':'Collect this hit',m,'',`Win paid ${profit}`);
+   }
+  }
+ }
+ if(name==='pointMade'){
+  if(s.kind!=='press'||s.pending)m='Finish any paused action first.';
+  else if(!s.point)m='Already on come-out.';
+  else{s.point=0;m='Point 5 made. Place stakes and hit counters remain; bets are off on come-out.';record(s,'Point made','Preserve place state',m);}
+ }
+ if(name==='pointOn'){
+  if(s.kind!=='press'||s.pending)m='Finish any paused action first.';
+  else{s.point=5;m='Point 5 established; existing place bets work again.';record(s,'Point established','Resume working status',m);}
+ }
+ if(name==='seven'){
+  if(s.kind!=='press'||s.pending)m='Finish any paused action first.';
+  else if(!s.point)m='Come-out 7: place bets are off and unchanged.';
+  else{s.held=[];s.point=0;m='Seven-out. Place bets and their counters reset; no automatic replacement.';record(s,'Seven-out','Reset per-number state',m);}
+ }
+ if(name==='stop'){
+  if(s.kind==='bj'){s.phase='ended';m='End this decision-only example. No hand settlement is simulated.';}
+  else{if(s.stake){const stake=s.stake;s.stake=0;record(s,'Automatic final roulette settlement','Finish the committed spin; no new bets','Scripted black outcome: red loses.','',`Lost ${stake}; progression stopped`);}const returned=s.held.reduce((n,b)=>n+b.amount,0);s.balance+=returned;s.held=[];s.pending=null;
+   record(s,'Stop requested','Return legally removable bets',`Returned ${returned}. No new wagers.`);
+   if(s.contract){const base=s.contract;s.contract=0;s.balance+=base*2;record(s,'Automatic final settlement','Established pass contract remains until resolved','Scripted rolls: 6 (unresolved), then 5 (point wins). No new bets.','',`Returned stake ${base} plus profit ${base}`);m=`Returned removable bets ${returned}. Automatically resolved pass ${base}: scripted point 5 won. Final balance ${s.balance}. Review settlement before results.`;}
+   else m=`Returned removable bets ${returned}. No committed wagers remain. Final balance ${s.balance}.`;
+   s.phase='ended';record(s,'Session ended','Final settlement complete',m);
+  }
+ }
+ if(['hit','stand','double','overrideStand'].includes(name)){
+  if(s.kind!=='bj')m='These actions belong to the blackjack example.';
+  else if(s.phase==='hand-done')m='Continue to the next example hand.';
+  else if(name==='double'&&s.balance<10){m='Double is unavailable: it needs 10 more; available balance is 5.';record(s,'Attempted double','Legality check','No action taken',m);}
+  else{const expected=s.balance<10?'hit':'double',chosen=name==='overrideStand'?'stand':name;
+   if(s.mode==='Learn'&&chosen!==expected&&name!=='overrideStand'){s.pending={choice:chosen};m=`Preferred double is unavailable. The illustrative legal fallback is ${expected}. Retry or explicitly override with stand.`;}
+   else{s.pending=null;s.phase='hand-done';record(s,'Playing decision','Illustrative double preference',`Player chose ${chosen}`,s.balance<10?'Insufficient balance → illustrative hit fallback':'None',chosen===expected?'Follows applicable prescription':'Playing override; next hand retains the strategy');m=s.mode==='Check'?'Decision recorded. Strategic feedback is deferred.':chosen===expected?'Followed the applicable fallback.':'Explicit playing override recorded. The strategy remains selected for the next hand.';}
+  }
+ }
+ if(name==='nextHand'){
+  if(s.kind!=='bj'||s.phase!=='hand-done')m='Complete the current example decision first.';
+  else{s.hand++;s.phase='ready';m='Next illustrative hand; the same active strategy still applies. This demo does not simulate dealing or financial settlement.';}
+ }
+ if(name==='reveal'){s.revealed=true;s.phase='ended';m='Check ended. Strategic explanations are now visible.';}
+ s.message=m;return s;
+}
+return {recipe,init,valid,describe,proposal,snapshot,event,fields,statusName};
+})();
+</script>
+<script>
+const $=id=>document.getElementById(id),clone=x=>structuredClone(x),escapeHTML=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let kind='lab',draft=Lifecycle.recipe(kind),latest=clone(draft),revision=1,s=Lifecycle.init(kind),savedDraft=null,archives=[],walk=null,step=0,status='';
+const opt=(list,v)=>list.map(([key,label])=>`<option value="${key}" ${String(v)===String(key)?'selected':''}>${label}</option>`).join('');
+function reset(k){kind=k;draft=Lifecycle.recipe(k);latest=clone(draft);revision=1;s=Lifecycle.init(k);savedDraft=null;archives=[];status='';render()}
+function next(){if(s.stake||s.contract||s.held.length||s.pending){s.message='Resolve or stop outstanding actions before the next session preview.';render();return}archives.push({version:s.version,description:Lifecycle.describe(s.recipe),balance:s.balance,trace:clone(s.trace)});s=Lifecycle.init(kind,latest,revision);s.message='New preview session uses the latest saved revision. The fixture balance has been reset.';render()}
+function save(){const e=Lifecycle.valid(draft);if(e){status=e+' You can still save an incomplete draft.';}else{latest=clone(draft);revision++;status=`Saved revision ${revision}. Current session remains on revision ${s.version}.`;}render()}
+function action(name,guided=false){if(!guided)walk=null;s=Lifecycle.event(s,name);render()}
+function setDraft(values){draft={...draft,...values};render()}
+const walks=[
+ {name:'List progression',kind:'lab',text:'A loss appends the lost stake; a win removes endpoints. The explanation trail records both changes.',steps:[['Place 40',()=>action('place',true)],['Lose on black',()=>action('loss',true)],['Place next 50',()=>action('place',true)],['Win on red',()=>action('win',true)]]},
+ {name:'Override and restart',kind:'lab',text:'Override the required 40 with 20. Settle the real bet without guessing how to modify the list.',steps:[['Override: place 20',()=>action('override',true)],['Lose on black',()=>action('loss',true)],['Restart cycle',()=>action('restart',true)],['Preview original list',()=>action('preview',true)]]},
+ {name:'Revision stays pinned',kind:'lab',text:'An edited starting list applies only after saving a new revision and starting the next session preview.',steps:[['Edit list to 1, 1',()=>setDraft({list:[1,1]})],['Save new revision',save],['Preview active revision',()=>action('preview',true)],['Start next session preview',next],['Preview new revision',()=>action('preview',true)]]},
+ {name:'All versus any',kind:'lab',text:'The same two conditions give different draft previews. Neither edit alters the active session.',steps:[['Require balance ≥ 600 AND active bets ≤ 0',()=>setDraft({join:'all',conditions:[{field:'balance',op:'>=',value:600},{field:'activeBets',op:'<=',value:0}]})],['Change ALL to ANY',()=>setDraft({join:'any'})]]},
+ {name:'Separate hit counters',kind:'press',text:'A hit on 8 does not advance 6’s collect/press sequence. Making the point preserves both counters.',steps:[['Place 12 on each',()=>action('place',true)],['Roll 6: collect',()=>action('six',true)],['Roll 8: collect',()=>action('eight',true)],['Roll 6: press',()=>action('six',true)],['Make point 5',()=>action('pointMade',true)],['Roll 7 on come-out',()=>action('seven',true)]]},
+ {name:'Paused press',kind:'press',setup:()=>{s.maximum=20},text:'The win settles before the press is evaluated. If the press exceeds a limit, its payout remains credited while the strategy action pauses.',steps:[['Place pair',()=>action('place',true)],['First 6: collect',()=>action('six',true)],['Second 6: press blocked',()=>action('six',true)],['Stop and return place stakes',()=>action('stop',true)]]},
+ {name:'Stop with a contract',kind:'stop',text:'Start with available 100, place bets totalling 24, and established pass 10 at point 5. Stopping cannot refund the pass contract.',steps:[['Stop strategy',()=>action('stop',true)]]},
+ {name:'Learn override',kind:'bj',text:'A legal fallback is offered before execution. An explicit stand override leaves the strategy selected for the next hand.',steps:[['Try double',()=>action('double',true)],['Choose stand',()=>action('stand',true)],['Explicitly override with stand',()=>action('overrideStand',true)],['Continue next hand',()=>action('nextHand',true)]]},
+ {name:'Check hides strategy',kind:'bj',setup:()=>{s.mode='Check'},text:'Legality is immediate; the recommended fallback, adherence, and teaching notes remain hidden until Check ends.',steps:[['Try unavailable double',()=>action('double',true)],['Choose legal stand',()=>action('stand',true)],['End Check and show feedback',()=>action('reveal',true)]]}
+];
+function wire(id,fn){$(id).onchange=e=>{walk=null;fn(e.target.value);render()}}
+function render(){
+ const hidden=s.kind==='bj'&&s.mode==='Check'&&!s.revealed;
+ $('example').value=kind;$('revisionNotice').textContent=`Active session: revision ${s.version}. Latest saved: revision ${revision}. Draft edits do not change either until saved.`;
+ let editor='';
+ if(kind==='lab'||kind==='press'){
+  editor+=`<label>Base amount <input id="unit" type="number" min="1" step="1" value="${draft.unit}"></label>`;
+  if(kind==='lab')editor+=`<label>Starting list (base units) <input id="list" type="text" value="${escapeHTML(draft.list.join(', '))}"></label>`;
+  editor+=`<label>${kind==='lab'?'Maximum next stake (base units)':'Maximum stake per number'} <input id="cap" type="number" min="1" step="1" value="${draft.cap}"></label><div class="rule">Before new bets, require <select id="join" aria-label="Combine conditions">${opt([['all','all'],['any','any']],draft.join)}</select> of these conditions:`;
+  draft.conditions.forEach((c,i)=>{editor+=`<div><select id="field${i}" aria-label="Condition ${i+1} field">${opt([['balance','Available balance'],['cycleProfit','Cycle profit/loss'],['activeBets','Active bet count']],c.field)}</select> <select id="op${i}" aria-label="Condition ${i+1} comparison">${opt([['>=','at least'],['<=','at most']],c.op)}</select> <input id="value${i}" type="number" aria-label="Condition ${i+1} amount" value="${c.value}"></div>`});editor+='</div>';
+ }else editor='<p>This example focuses on the session lifecycle; its scripted rules are fixed. Use roulette or press-and-collect to edit progression rules.</p>';
+ $('editor').innerHTML=hidden?'<p>Builder and draft preview hidden during Check so they do not reveal the strategy’s answer.</p>':editor;
+ $('note').parentElement.hidden=hidden;$('save').hidden=hidden;$('saveDraft').hidden=hidden;$('restoreDraft').hidden=hidden;$('note').value=draft.note;
+ if(!hidden&&(kind==='lab'||kind==='press')){wire('unit',v=>draft.unit=Number(v));wire('cap',v=>draft.cap=Number(v));if(kind==='lab')wire('list',v=>draft.list=v.trim()?v.split(',').map(x=>x.trim()?Number(x):NaN):[]);wire('join',v=>draft.join=v);draft.conditions.forEach((_,i)=>{wire('field'+i,v=>draft.conditions[i].field=v);wire('op'+i,v=>draft.conditions[i].op=v);wire('value'+i,v=>draft.conditions[i].value=Number(v))})}
+ $('saveStatus').textContent=status;$('description').textContent=hidden?'Available after Check ends.':Lifecycle.describe(draft);
+ const p=Lifecycle.proposal(s,draft);$('draftPreview').textContent=hidden?'Available after Check ends.':(p.error||p.text)+(kind==='lab'?' Draft previews use the draft’s starting list.':'');
+ $('fixture').textContent=kind==='lab'?'Roulette on red: scripted red win / black loss. Outside limits 10–1,000.':kind==='press'?`Standard craps; point ${s.point||'off (come-out)'}. Place maximum ${s.maximum}.` :kind==='stop'?'Standard craps; established pass at point 5. Automatic settlement uses a fixed 6, then 5 outcome for this example.':`Hard 11 (5 + 6) against dealer 6. Initial 10 is already committed; only 5 is available for extra actions. ${s.mode} variant.`;
+ const values=[['Available balance',s.balance],['Active revision',s.version],['Status',Lifecycle.statusName(s)],...(kind==='lab'?[['Progression list','['+s.sequence.join(', ')+']'],['Outstanding wager',s.stake],['Cycle profit/loss',Lifecycle.fields(s).cycleProfit]]:kind==='bj'?[['Example hand',s.hand]]:[['Place 6',showBet(6)],['Place 8',showBet(8)],['Committed pass',s.contract],['Paused press',s.pending?`Number ${s.pending.target}, pending hit ${s.pending.hit}`:'None']])];
+ $('state').innerHTML=values.map(([k,v])=>`<dt>${escapeHTML(k)}</dt><dd>${escapeHTML(v)}</dd>`).join('');$('message').textContent=s.message;
+ const buttons=kind==='lab'?[['preview','Preview active bets'],['place','Place prescribed bets'],['override','Override: place 20'],['win','Red wins'],['loss','Black wins'],['restart','Restart cycle'],['stop','End session']]:kind==='press'?[['place','Place prescribed bets'],['six','Roll 6'],['eight','Roll 8'],['pointMade','Make point 5'],['pointOn','Establish point 5'],['seven','Roll 7'],['overridePress','Override paused press: collect'],['restart','Restart cycle'],['stop','Stop strategy']]:kind==='stop'?[['stop','Stop strategy']]:[['double','Double'],['hit','Hit'],['stand','Stand'],...(!hidden?[['overrideStand','Explicitly override: stand']]:[]),['nextHand','Next example hand'],...(s.mode==='Check'?[['reveal','End Check; show feedback']]:[])];
+ $('free').replaceChildren(...buttons.map(([a,label])=>button(label,()=>action(a))));
+ $('trailNote').textContent=hidden?'Strategic feedback is deferred until Check ends.':'Each step shows which instruction applied and how the state changed. Author notes are separate from executable instructions.';
+ $('trail').innerHTML=hidden?'<p>Feedback hidden.</p>':s.trace.length?s.trace.map(t=>`<div class="trace"><strong>${escapeHTML(t.step)} · revision ${t.version}</strong><p>Rule: ${escapeHTML(t.rule)}</p><p>Action: ${escapeHTML(t.action)}</p>${t.fallback?`<p>Fallback: ${escapeHTML(t.fallback)}</p>`:''}${t.outcome?`<p>Outcome: ${escapeHTML(t.outcome)}</p>`:''}<p class="muted">After: ${escapeHTML(t.state)}</p></div>`).join(''):'<p>No actions yet.</p>';
+ if(!hidden&&s.recipe.note)$('trail').innerHTML+=`<p><strong>Author note (not executable):</strong> ${escapeHTML(s.recipe.note)}</p>`;
+ $('walks').replaceChildren(...walks.map((w,i)=>{const b=button(w.name,()=>{walk=i;step=0;reset(w.kind);if(w.setup)w.setup();render()});b.setAttribute('role','tab');b.setAttribute('aria-selected',walk===i);return b}));
+ $('walkText').textContent=walk===null?'Choose a walkthrough, or use the free-play buttons above.':walks[walk].text;
+ $('steps').replaceChildren(...(walk===null?[]:walks[walk].steps.map(([title,fn],i)=>{const b=button((i<step?'✓ ':`${i+1}. `)+title,()=>{fn();step++;render()});b.disabled=i!==step;return b})));
+ $('archives').innerHTML=archives.length?archives.map((a,i)=>`<details><summary>Session ${i+1}: revision ${a.version}, ending available balance ${a.balance}</summary><p>${escapeHTML(a.description)}</p><p>${a.trace.length} recorded explanation steps.</p></details>`).join(''):'<p>No session has been archived yet.</p>';
+}
+function showBet(n){const b=s.held.find(b=>b.target===n);return b?`${b.amount}; ${b.hits} hits; ${s.point?'working':'off'}`:'None'}
+function button(label,fn){const b=document.createElement('button');b.textContent=label;b.onclick=fn;return b}
+$('example').onchange=e=>{walk=null;reset(e.target.value)};$('reset').onclick=()=>{walk=null;reset(kind)};$('next').onclick=()=>{walk=null;next()};$('save').onclick=()=>{walk=null;save()};$('note').onchange=e=>{walk=null;draft.note=e.target.value;render()};
+$('saveDraft').onclick=()=>{savedDraft=clone(draft);status='Draft saved in memory, including any incomplete instructions.';render()};$('restoreDraft').onclick=()=>{if(savedDraft){draft=clone(savedDraft);status='Saved draft restored.';}else status='No draft saved for this example.';render()};render();
+</script></html>
