@@ -1,10 +1,10 @@
 # Blackjack coaching reference validation
 
-Research date: 2026-09-06. Partial evidence for [issue #15](https://github.com/0xRowdy/true-count/issues/15), following [coverage research](blackjack-coaching-coverage.md). **Keep #15 open: this report does not certify the complete launch reference.**
+Research date: 2026-09-06. Partial evidence for [Blackjack coaching reference validation](https://github.com/0xRowdy/true-count/issues/15), following [coverage research](blackjack-coaching-coverage.md). **Keep Blackjack coaching reference validation open: this report does not certify the complete launch reference.**
 
 ## Result
 
-A publicly licensed calculation package was obtained and executed. Sixty independently executed stand/hit/double values agree with a second published reference within 0.000001; 59 are within six-decimal rounding tolerance. Eight split values disagree. Count/depth arithmetic and an insurance probability example were calculated separately. These are actual results, not proposed tests. No complete set of validated basic/fallback tables or 22-situation Hi-Lo indices was produced.
+A publicly licensed calculation package was obtained and executed. Sixty independently executed stand/hit/double values agree with a second published reference within 0.000001; 58 are within six-decimal rounding tolerance. Eight split values disagree. Count/depth arithmetic and an insurance probability example were calculated separately. These are actual results, not proposed tests. No complete set of validated basic/fallback tables or 22-situation Hi-Lo indices was produced.
 
 The remaining work is generation and independent comparison of the curriculum under the accepted conventions, including resolution of split discrepancies. The index optimization objective and aggregation/continuation model must be recorded before claiming a unique numerical answer. A count is insufficient to identify one exact composition-dependent best action; the insurance example below demonstrates this directly.
 
@@ -20,7 +20,7 @@ The final Answer of [Launch game rules and practice strategies](https://github.c
 - Penetration 50/55/60/65/70/75/80%, default 75%, finish the cut-card round; zero to four other players using rule-specific basic play.
 - I18 situation list plus F4 in LS presets; numeric thresholds and sign exceptions remain unvalidated.
 
-[Strategy creation #5](https://github.com/0xRowdy/true-count/issues/5) also requires a validated legal alternative when a strategy supplies none, including insufficient balance as a cause of unavailable double/split actions. References below evaluate available actions; they do not supply a complete policy for coupled bankroll allocation across split hands.
+[Intuitive executable strategy creation](https://github.com/0xRowdy/true-count/issues/5) also requires a validated legal alternative when a strategy supplies none, including insufficient balance as a cause of unavailable double/split actions. References below evaluate available actions; they do not supply a complete policy for coupled bankroll allocation across split hands.
 
 ## Executable reference obtained
 
@@ -34,7 +34,7 @@ All values are expected net return per original hand wager, conditioned on no de
 
 The comparator is Wizard Appendix 9 for [six-deck S17](https://wizardofodds.com/games/blackjack/appendix/9/6ds17r4/) and [six-deck H17](https://wizardofodds.com/games/blackjack/appendix/9/6dh17r4/), retrieved 2026-09-06. Both state the four-hand cap and no resplitting/drawing to split aces. They explicitly limit their treatment of cards drawn into other split hands. This is independent execution against another published analysis; the programs' complete historical independence was not established.
 
-For each of ten hands under both rules, **all three stand/hit/double values matched the published values within 0.000001** (60 comparisons). Of these, 59 differ by at most 0.0000005. H17 ten-ten versus 5 double differs by 0.000000592 (published −1.706234, calculated −1.706233408), a small unresolved numerical discrepancy exceeding simple rounding tolerance. The table prints our output; publication comparison used its displayed six decimals.
+For each of ten hands under both rules, **all three stand/hit/double values matched the published values within 0.000001** (60 comparisons). Of these, 58 differ by at most 0.0000005. H17 ten-ten versus 5 double differs by 0.000000592 (published −1.706234, calculated −1.706233408), H17 ten-ten versus 6 double differs by 0.000000555 (published −1.705836, calculated −1.705835445). Both small unresolved numerical discrepancies exceed simple rounding tolerance. The table prints our output; publication comparison used its displayed six decimals.
 
 | Rule | Player vs dealer | Stand | Hit | Double |
 | --- | --- | ---: | ---: | ---: |
@@ -162,4 +162,4 @@ The exact missing methodological input is the optimization target and averaging/
 
 Once that target is fixed, the concrete next action is a bounded offline reference-generation experiment, adapting count/depth and visibility semantics rather than importing the existing index adapter. Generate legal-action EV differences per situation and integer-count bin, retain the sampling distribution or enumeration weights and uncertainty, and compare every selected/changed threshold against a separate calculation. Resolve the eight observed split disagreements before relying on either split routine for index certification. Freeze the resulting basic, fallback, and deviation records with source/settings provenance.
 
-Uncompleted acceptance items are: all baseline cells; every index's below/equal/above cases; zero/sign decisions; post-split and split-cap alternatives; forced split-ace lifecycle; balance-limited alternatives and allocation across existing hands; and actual simulated reveal/peek/surrender integration. The two initial stand-versus-hit fallback examples above are not substitutes for that coverage. This is substantive computation and validation remaining in #15, not a reason to create a duplicate research ticket or call the map implementation-ready.
+Uncompleted acceptance items are: all baseline cells; every index's below/equal/above cases; zero/sign decisions; post-split and split-cap alternatives; forced split-ace lifecycle; balance-limited alternatives and allocation across existing hands; and actual simulated reveal/peek/surrender integration. The two initial stand-versus-hit fallback examples above are not substitutes for that coverage. This is substantive computation and validation remaining in Blackjack coaching reference validation, not a reason to create a duplicate research ticket or call the map implementation-ready.
