@@ -1,6 +1,6 @@
 # Offline access and subscription lifecycle — decision draft
 
-Prepared from the user's accepted answers Q1–Q28. Pending final shared-understanding review. After that review, the resolution comment on [Offline access and subscription lifecycle](https://github.com/0xRowdy/true-count/issues/8) will be the canonical decision; this file is a review copy.
+Prepared from the user's accepted answers Q1–Q28 and subsequent review notes. Pending final shared-understanding review. The service-outage behavior below is a new proposal awaiting acceptance; the optional scope cuts have not been adopted. After that review, the resolution comment on [Offline access and subscription lifecycle](https://github.com/0xRowdy/true-count/issues/8) will be the canonical decision; this file is a review copy.
 
 ## Scope and existing contracts
 
@@ -16,6 +16,22 @@ Bundle all three games and their built-in strategies with installation. Show exp
 
 Every account selects its free offline game during initial setup, including premium accounts. Keep this fallback visible in Settings. Changes require connectivity and follow the account on connected devices. A device still offline retains its last confirmed selection until reconnection, allowing temporary differences. The ready content must support the selected game; merely having other games installed does not grant offline access to them. Counting challenges remain blackjack content under the same game-access boundaries, apart from the already-started attempt completion exception below.
 
+## Connectivity and service availability — review proposal
+
+A Wi-Fi/mobile connection indicator or captive portal is not evidence of usable online access. Actions that change authoritative account state require a successful response from the responsible service: initial sign-in and sign-in after explicit sign-out, daily allowance grants, allowance transfer/replacement, offline-game or timezone changes, purchase linking/restoration/verification, enabling sharing, publication, ratings, and conflict resolution. A request that times out is pending or failed, not confirmed; retries cannot duplicate it. Public withdrawal can be queued locally, but removal is confirmed only after server acknowledgement. Community browsing/downloads require their content service; previously downloaded revisions remain usable under cached access rights.
+
+Cached account state suffices for remembered sign-in, the selected offline game, spending a still-valid allowance on its designated device, premium within its existing offline deadline, local strategy editing, session logging/history, saving, and permitted recovery/final settlement. Failure of an unrelated service, such as community browsing or private-record upload, does not revoke those rights.
+
+**Proposed outage policy, awaiting acceptance:** starting or resuming free play outside the selected offline game requires a successful account-access response. That response authorizes the current foreground activity; routine backend errors do not interrupt it while usable internet connectivity remains established. No per-turn server request is required. A pause, background/restart, or loss of usable internet ends that online authorization: apply the accepted stopping rules on loss, and require a new response before further play outside the selected game. An already-started challenge retains its completion exception. A captive portal does not qualify as usable internet. Architecture must define and test the connectivity validation mechanism without treating account-service failure alone as proof that internet access was lost.
+
+Thus, during a True Count account-service outage, an already-authorized foreground activity can continue, but a new/resumed activity may be restricted to cached offline rights. Display “True Count is unavailable. Your selected offline game and saved records remain available.” This proposal deliberately makes the outage boundary explicit; it does not grant an unlimited cached all-games entitlement.
+
+## Offline promise and player-facing status — review clarification
+
+Onboarding and purchase copy must state that free offline training requires an unexpired daily allowance obtained online, and that premium requires periodic successful verification, at most seven days apart and sometimes sooner. If reliable elapsed time becomes unavailable, reconnection may be required before the displayed deadline. Do not advertise unconditional or permanent offline training.
+
+Show separate content, access, allowance, verification, and sync statuses. Example: “Blackjack content ready offline”; “Selected free offline game: Blackjack”; “Training allowance expires at midnight — connect to obtain tomorrow's allowance”; “Reconnect by September 14 at 10:00 AM Mountain Time for premium access”; and “2 records waiting to sync.” Use the account's actual allowance expiry during timezone transitions rather than always saying midnight. When time is uncertain, replace the deadline assurance with “Reconnect to verify access.” Content readiness alone does not promise playable access.
+
 ## Identity and account separation — Q8, Q22
 
 Initial sign-in requires connectivity. A previously signed-in account can reopen offline without repeating sign-in, subject to the separate access and content rules.
@@ -26,18 +42,25 @@ Premium is one True Count account-level entitlement across iOS and Android. Link
 
 ## Offline premium verification — Q3, Q7, Q12, Q18, Q23
 
-After successful positive online verification, the offline deadline is the earlier of:
+First establish whether the store currently recognizes the subscription as entitled. Applicable store billing grace preserves access even after the last paid period ends; billing retry alone must not be mistaken for entitled grace. Apple describes continued access during enabled Billing Grace Period, and Google requires subscription benefits during grace and dynamically extends the entitlement expiry. Use the verified entitlement state and its applicable end, including store billing grace, rather than the last payment date. Sources: [Apple billing grace](https://developer.apple.com/help/app-store-connect/manage-subscriptions/enable-billing-grace-period-for-auto-renewable-subscriptions), [Google subscription lifecycle](https://developer.android.com/google/play/billing/lifecycle/subscriptions).
 
-- seven days after that verification; or
-- 72 hours after the end of the last verified paid entitlement.
+Store billing grace and True Count's offline grace are separate. A successful current verification of an entitled state grants premium access. For subsequent offline use, let V be the successful verification time and E the verified end of the currently recognized entitlement, including applicable store billing grace. The offline deadline is min(V + seven days, E + 72 hours). The additional 72 hours tolerate inability to reverify; they do not change the store's billing state or override a later confirmed loss of entitlement.
 
-Explain the reconnect deadline to the player. Successful verification reporting expiration or revocation overrides remaining offline grace. Failure to verify leaves the existing deadline unchanged: it cannot extend it or prematurely end still-valid offline access. Cancellation of renewal alone preserves the verified paid period. Store-specific billing/verification states must be mapped to this contract in subscription implementation planning.
+For example, verification on September 6 confirming store billing grace through September 10 gives an offline deadline of September 13, even if the paid period ended September 1. A successful entitled response must never be rejected by calculating against that stale paid-period end. If a response confirms current entitlement but supplies no usable future entitlement end, preserve current verified access; do not manufacture E or a new offline extension. Retain any still-valid prior offline deadline and otherwise require successful verification for access. Provider-specific handling of that exceptional response is an explicit subscription-architecture acceptance case.
+
+Explain the reconnect deadline to the player. Successful verification reporting expiration or revocation overrides remaining offline grace. Failure to verify leaves the existing deadline unchanged: it cannot extend it or prematurely end still-valid offline access. Cancellation of renewal alone preserves access through the verified entitlement end. Store-specific billing/verification states must be mapped to this contract in subscription implementation planning.
 
 If the app cannot reliably determine whether an allowance or premium deadline has passed, require reconnection before starting further training or using premium-only access. Displayed-clock changes never extend access or grant allowance. Reboot and reinstall are not sources of fresh grants or verification periods. Architecture must establish how trustworthy elapsed time survives, or becomes unavailable, across device events; uncertainty uses this reconnect rule.
 
 When access becomes unavailable, finish only an already-started blackjack round, craps roll, or roulette spin, then perform final settlement, save, and end the session. An already-started counting challenge may finish on its original device without another charge. Recheck access before starting another turn, including after pause/recovery, a daily reset, premium expiration, or loss of connectivity to a game outside the offline selection. Pausing never extends access to new turns.
 
 Afterward, free access includes the selected offline game, any valid available free allowance, and complete locally saved history/basic results. This access boundary must not interrupt settlement or reinterpret already-resolved outcomes. A proven execution defect that prevents valid continuation follows the incomplete-record rule rather than invented settlement.
+
+### Craps stopping and final settlement — review clarification
+
+“Finish the current roll” ends interactive training, not all game execution. Follow the accepted **Overrides, stopping, and blackjack fallbacks** rule in [Intuitive executable strategy creation](https://github.com/0xRowdy/true-count/issues/5#issuecomment-5556790279): stop new bets, return every wager the table rules permit removing, and automatically resolve the remaining committed wagers. In particular, established pass/come contracts cannot be refunded simply because access ended. Return removable place bets and removable odds according to the selected table conditions; the game engine determines removability for each wager and current state.
+
+Final settlement may generate additional rolls solely to resolve those existing contracts. It permits no new wagers, presses, replacement bets, progression restart, or discretionary strategy adjustments. The player may view settlement or pause/close and later resume that same settlement; this never reopens interactive play. No additional training turns, time, or challenge attempts are charged for automatic settlement. Legitimate wins/losses still affect the original session and its original training bankroll where applicable; they never refill a new day's allowance. Show “Training ended — settling existing bets; no further allowance used,” then the final results. A restart preserves the settlement position, outcomes, and already-applied payouts.
 
 ## Free allowance ownership, replenishment, and recovery — Q4, Q6, Q9, Q11, Q14
 
@@ -77,13 +100,17 @@ Synchronize automatically for the signed-in account. Reconcile access, allowance
 
 Independent new sessions merge normally. When devices concurrently edit the same private strategy or casino-session record, preserve both proposed versions and ask which to keep when the player next edits that item. Never silently overwrite conflicting changes or count two versions of one casino session.
 
-While a casino-session conflict is unresolved, account totals use the last mutually synced version and mark that session as needing review. Resolving it replaces that session's contribution exactly once. Private strategy conflicts keep the last synced revision available, while active practice retains its pinned revision.
+For each item, the server identifies one accepted revision. An edit identifies the accepted revision it was based on. Once competing edits are detected, freeze the currently server-accepted revision as the conflict's totals baseline; preserve the competing proposals separately. For example, if A's edit of R1 was accepted as R2 before B's edit of R1 arrives, R2 remains the baseline while B's conflicting proposal is reviewed. A third device does not redefine that baseline by acknowledging a different revision. This replaces the ambiguous phrase “last mutually synced version.”
+
+While a casino-session conflict remains unresolved, canonical account totals include exactly that baseline revision once and mark the session for review. Devices still offline show totals based on their last received server revision, label pending local edits/sync status separately, and converge on reconnection; they cannot promise current account-wide totals. An unsynced new session remains visibly local until accepted, with retries deduplicated. Resolution establishes one new accepted revision and replaces the session's contribution exactly once. Private strategy conflicts retain the server-accepted revision as the default while proposals await resolution; active practice remains pinned. A server-accepted deletion contributes nothing and follows the recovery rule below.
 
 If deletion conflicts with an offline edit, do not automatically restore the item. Preserve the conflicting edit for review and offer explicit recovery. A deleted casino session stays out of totals unless restored. Ordinary nonconflicting casino corrections still overwrite without an edit history under the ledger decision; temporary conflict copies serve reconciliation, not an added audit-history product.
 
 ## Privacy, public queues, and saved community revisions — Q20, Q26, Q28
 
 Permit offline practice-sharing disablement and requests to remove public contributions. Stop local sharing immediately, durably queue withdrawal, and clearly state that public removal awaits connectivity. Reconcile withdrawals before queued contributions. Withdrawal removes prior public practice aggregates and popularity contributions while preserving private histories; explicit ratings remain separate contributions unless separately removed.
+
+Offline withdrawal cannot immediately reach other devices. If device A disables sharing offline while device B stays online, B may continue contributing under the old sharing period before A's withdrawal reaches the server. Once received, the withdrawal removes all prior practice aggregates and popularity contributions covered by the withdrawal, including B's contributions accepted during that interval; preserve their private results. Show withdrawal as pending on A until acknowledgement. Do not use client timestamps to pretend enforcement occurred before receipt or to exclude B's intervening contributions from removal.
 
 Withdrawal invalidates the previous sharing period account-wide. Results queued under that period on another offline device remain private, even if sharing is later re-enabled. The stale device must reconnect and receive the new sharing state before future sessions can contribute again. Retries and late uploads never restore withdrawn contributions.
 
@@ -92,6 +119,27 @@ Enabling sharing, publishing, and submitting ratings require connectivity. Re-en
 New executable community revisions are adopted only by player choice; active sessions and historical results retain their pinned revision. On reconnection, apply known public-text removals and mark unavailable sources while preserving saved executable copies under the accepted community rules. An offline device can only apply a removal when it learns of it.
 
 If an execution defect makes a revision unusable, explain the block and preserve affected records. Do not silently substitute a different strategy, rewrite historical execution, reroll outcomes, or invent settlement results. Valid recovery/final settlement can proceed where supported; an activity that cannot be validly recovered remains incomplete. Account deletion and legal content-rights obligations remain release-readiness work.
+
+## Lifecycle scenario checks
+
+The outage row reflects the proposal above; other rows restate the clarified lifecycle contract. “Charge” below means free training allowance consumption, separate from legitimate wager settlement.
+
+| Scenario | What continues | What stops | What gets charged | What the player sees |
+| --- | --- | --- | --- | --- |
+| Premium/allowance expires during a craps roll with an established pass wager | Current roll, return of removable bets, then automatic rolls until committed wagers settle | New interactive rolls, bets, presses, and cycle restarts | Existing turn charge is retained; settlement uses no extra allowance; payouts belong to original session | Access ended; settling existing bets; saved results afterward |
+| Restart during settlement | Same settlement state and remaining contracts; already-generated outcomes remain fixed | Fresh outcomes for already-generated rolls, duplicate payouts, new bets | No replayed or extra settlement charges | Resuming settlement; incomplete record if valid recovery is impossible |
+| Midnight without connectivity | Current turn then settlement; started challenge may finish; ordinary free play in selected game | New free training until an online daily grant | Existing charges stay; no offline grant or rollover; old bankroll cannot fund the new day | Today's allowance expired; connect for the new allowance; selected game available |
+| Lost allowance device replaced online | Ordinary free play on replacement; old charged challenge may finish on original device if recovered | Replacement spending today's unreconciled allowance; future grants to old device | No replacement grant until next daily reset; no duplicate budget | Replacement registered; training available after the displayed reset and online grant |
+| Premium verification fails | Cached premium until unchanged offline deadline if time remains trustworthy; safe completion afterward | New premium-only activity after deadline/uncertain time; no inferred renewal | No free allowance while premium remains valid; later free activity follows valid remaining grant | Verification unavailable; existing reconnect deadline or reconnect-required message |
+| Store billing grace verified after paid period ended | Premium under confirmed entitled state; offline deadline uses recognized entitlement end | Denial based solely on past payment expiry | No free training allowance while premium applies | Premium active; store billing issue and actual reconnect deadline shown separately |
+| A withdraws sharing offline while B contributes online; stale uploads later arrive | Private results and histories | Server removes covered contributions including B's intervening uploads once withdrawal arrives; old-period uploads cannot republish | No allowance refund or recharge from privacy changes | Removal pending, then confirmed; re-enabling includes future sessions only |
+| Account service outage / captive portal (proposal) | Cached offline rights; already-authorized foreground activity during backend outage with usable internet | New/resumed nonselected free game without successful access response; actual internet loss triggers safe stopping | No charge for a blocked start; normal accounting for permitted activity | Service unavailable or sign into network; selected offline game remains available |
+
+## Launch scope and optional reductions — review note
+
+The accepted baseline still includes durable recovery/account isolation, allowance transfer and replacement, chosen allowance timezone and controlled timezone changes, configurable policy versions/experiments, concurrent-edit reconciliation, and account-wide withdrawal. The initial live policy is already fixed to the accepted timed allowance for everyone; supporting later experiments is additional launch capability, not a requirement to run experiments on day one.
+
+If implementation estimates require cuts, consider deferring self-service allowance transfer, user-selectable allowance timezones, and experiment-driven policy changes together before weakening recovery or account separation. Preserve lost-device replacement and a fixed launch policy. These are options, not accepted revisions: a timezone cut still needs a defined launch reset timezone, and a fixed-policy launch would revise the accepted allowance-experiment scope. Do not silently remove these requirements or reopen their closed decisions without agreement. Carry estimation and any proposed scope revision into architecture/delivery planning.
 
 ## Architecture handoffs and map maintenance
 
