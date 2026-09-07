@@ -1,6 +1,6 @@
-# Offline access and subscription lifecycle — decision draft
+# Offline access and subscription lifecycle — accepted decision
 
-Prepared from the user's accepted answers Q1–Q28 and subsequent review notes. Pending final shared-understanding review. The service-outage behavior below is a new proposal awaiting acceptance; the optional scope cuts have not been adopted. After that review, the resolution comment on [Offline access and subscription lifecycle](https://github.com/0xRowdy/true-count/issues/8) will be the canonical decision; this file is a review copy.
+Accepted from Q1–Q28, the user's review clarifications, and explicit acceptance of the service-outage boundary. Optional scope cuts have not been adopted. The resolution comment on [Offline access and subscription lifecycle](https://github.com/0xRowdy/true-count/issues/8#issuecomment-5564273168) is canonical; this file preserves the reviewed decision for repository readers.
 
 ## Scope and existing contracts
 
@@ -16,15 +16,15 @@ Bundle all three games and their built-in strategies with installation. Show exp
 
 Every account selects its free offline game during initial setup, including premium accounts. Keep this fallback visible in Settings. Changes require connectivity and follow the account on connected devices. A device still offline retains its last confirmed selection until reconnection, allowing temporary differences. The ready content must support the selected game; merely having other games installed does not grant offline access to them. Counting challenges remain blackjack content under the same game-access boundaries, apart from the already-started attempt completion exception below.
 
-## Connectivity and service availability — review proposal
+## Connectivity and service availability — accepted review clarification
 
 A Wi-Fi/mobile connection indicator or captive portal is not evidence of usable online access. Actions that change authoritative account state require a successful response from the responsible service: initial sign-in and sign-in after explicit sign-out, daily allowance grants, allowance transfer/replacement, offline-game or timezone changes, purchase linking/restoration/verification, enabling sharing, publication, ratings, and conflict resolution. A request that times out is pending or failed, not confirmed; retries cannot duplicate it. Public withdrawal can be queued locally, but removal is confirmed only after server acknowledgement. Community browsing/downloads require their content service; previously downloaded revisions remain usable under cached access rights.
 
 Cached account state suffices for remembered sign-in, the selected offline game, spending a still-valid allowance on its designated device, premium within its existing offline deadline, local strategy editing, session logging/history, saving, and permitted recovery/final settlement. Failure of an unrelated service, such as community browsing or private-record upload, does not revoke those rights.
 
-**Proposed outage policy, awaiting acceptance:** starting or resuming free play outside the selected offline game requires a successful account-access response. That response authorizes the current foreground activity; routine backend errors do not interrupt it while usable internet connectivity remains established. No per-turn server request is required. A pause, background/restart, or loss of usable internet ends that online authorization: apply the accepted stopping rules on loss, and require a new response before further play outside the selected game. An already-started challenge retains its completion exception. A captive portal does not qualify as usable internet. Architecture must define and test the connectivity validation mechanism without treating account-service failure alone as proof that internet access was lost.
+**Accepted outage policy:** starting or resuming free play outside the selected offline game requires a successful account-access response. That response authorizes the current foreground activity; routine backend errors do not interrupt it while usable internet connectivity remains established. No per-turn server request is required. A pause, background/restart, or loss of usable internet ends that online authorization: apply the accepted stopping rules on loss, and require a new response before further play outside the selected game. An already-started challenge retains its completion exception. A captive portal does not qualify as usable internet. Architecture must define and test the connectivity validation mechanism without treating account-service failure alone as proof that internet access was lost.
 
-Thus, during a True Count account-service outage, an already-authorized foreground activity can continue, but a new/resumed activity may be restricted to cached offline rights. Display “True Count is unavailable. Your selected offline game and saved records remain available.” This proposal deliberately makes the outage boundary explicit; it does not grant an unlimited cached all-games entitlement.
+Thus, during a True Count account-service outage, an already-authorized foreground activity can continue, but a new/resumed activity may be restricted to cached offline rights. Display “True Count is unavailable. Your selected offline game and saved records remain available.” This policy makes the outage boundary explicit; it does not grant an unlimited cached all-games entitlement.
 
 ## Offline promise and player-facing status — review clarification
 
@@ -122,7 +122,7 @@ If an execution defect makes a revision unusable, explain the block and preserve
 
 ## Lifecycle scenario checks
 
-The outage row reflects the proposal above; other rows restate the clarified lifecycle contract. “Charge” below means free training allowance consumption, separate from legitimate wager settlement.
+These scenarios restate the accepted lifecycle contract. “Charge” below means free training allowance consumption, separate from legitimate wager settlement.
 
 | Scenario | What continues | What stops | What gets charged | What the player sees |
 | --- | --- | --- | --- | --- |
@@ -133,7 +133,7 @@ The outage row reflects the proposal above; other rows restate the clarified lif
 | Premium verification fails | Cached premium until unchanged offline deadline if time remains trustworthy; safe completion afterward | New premium-only activity after deadline/uncertain time; no inferred renewal | No free allowance while premium remains valid; later free activity follows valid remaining grant | Verification unavailable; existing reconnect deadline or reconnect-required message |
 | Store billing grace verified after paid period ended | Premium under confirmed entitled state; offline deadline uses recognized entitlement end | Denial based solely on past payment expiry | No free training allowance while premium applies | Premium active; store billing issue and actual reconnect deadline shown separately |
 | A withdraws sharing offline while B contributes online; stale uploads later arrive | Private results and histories | Server removes covered contributions including B's intervening uploads once withdrawal arrives; old-period uploads cannot republish | No allowance refund or recharge from privacy changes | Removal pending, then confirmed; re-enabling includes future sessions only |
-| Account service outage / captive portal (proposal) | Cached offline rights; already-authorized foreground activity during backend outage with usable internet | New/resumed nonselected free game without successful access response; actual internet loss triggers safe stopping | No charge for a blocked start; normal accounting for permitted activity | Service unavailable or sign into network; selected offline game remains available |
+| Account service outage / captive portal | Cached offline rights; already-authorized foreground activity during backend outage with usable internet | New/resumed nonselected free game without successful access response; actual internet loss triggers safe stopping | No charge for a blocked start; normal accounting for permitted activity | Service unavailable or sign into network; selected offline game remains available |
 
 ## Launch scope and optional reductions — review note
 
@@ -143,14 +143,14 @@ If implementation estimates require cuts, consider deferring self-service allowa
 
 ## Architecture handoffs and map maintenance
 
-Closing this product decision unblocks [Mobile platform and shared game-engine architecture](https://github.com/0xRowdy/true-count/issues/16). Its implementation contracts must cover durable exact recovery, separation of access enforcement from game execution, unchanged randomness/reference versions, safe stopping and settlement, and prevention of duplicated accounting. It must investigate technical feasibility rather than treating these product choices as already-verified capabilities.
+This product decision unblocks [Mobile platform and shared game-engine architecture](https://github.com/0xRowdy/true-count/issues/16). Its implementation contracts must cover durable exact recovery, separation of access enforcement from game execution, unchanged randomness/reference versions, safe stopping and settlement, and prevention of duplicated accounting. It must investigate technical feasibility rather than treating these product choices as already-verified capabilities.
 
-The implementation-choice fog is now precise enough for three focused child decisions, each waiting for the mobile architecture choice (and this lifecycle resolution):
+The implementation-choice fog has graduated into these focused map children, each waiting for the mobile architecture choice:
 
-1. **Local persistence and account synchronization architecture:** choose local/remote persistence and synchronization approach; define durable activity checkpoints, account isolation, allowance ownership/grants/trusted-time enforcement, conflict/deletion reconciliation, consent ordering, retries, and migration/reinstall behavior. Specify acceptance checks for the lifecycle contract without implementing production services.
-2. **Authentication and account lifecycle:** choose account identity/authentication and secure remembered-sign-in approach; define recovery, purchase/account identity boundaries, local-data isolation, and account export/deletion/revocation behavior. Investigate applicable privacy and store obligations before finalizing those choices. Coordinate identity contracts with persistence and subscriptions.
-3. **Subscription verification and entitlement implementation:** choose store/provider integration and map purchase, restoration, renewal, cancellation, expiration, billing recovery, refund/revocation, duplicate/cross-account purchase cases, and cross-platform benefits into the accepted entitlement contract. Establish trustworthy verification/deadline behavior and operational reconciliation. Also wait for the authentication/account identity decision.
+- [Local persistence and account synchronization architecture](https://github.com/0xRowdy/true-count/issues/21)
+- [Authentication and account lifecycle](https://github.com/0xRowdy/true-count/issues/22)
+- [Subscription verification and entitlement implementation](https://github.com/0xRowdy/true-count/issues/23)
 
-Create these as map children and wire native dependencies after final review. Remove only the graduated persistence/synchronization/authentication/subscription implementation bullet from the map's fog. Broader release readiness, visual direction/onboarding/audio/tutorials, and delivery staging remain. The authentication child takes ownership of account lifecycle; release readiness retains the broader privacy/release review.
+Subscription verification and entitlement implementation also waits for Authentication and account lifecycle. The tickets own provider choice, operational contracts, and scenario validation; this decision does not certify technical feasibility. Broader release readiness, visual direction/onboarding/audio/tutorials, and delivery staging remain on the map. Authentication and account lifecycle owns the focused account-lifecycle decision; release readiness retains the broader privacy/release review.
 
-Only this non-research ticket is being resolved in this session. No production app, subscription service, or synchronization implementation has been built. The numerical blackjack-reference validation and ordinary practice-funding decisions remain with their existing tickets.
+Optional launch reductions remain unaccepted. This resolves one non-research decision only; no production app, subscription service, or synchronization implementation has been built. Numerical blackjack-reference validation and ordinary practice funding remain with their existing tickets.
