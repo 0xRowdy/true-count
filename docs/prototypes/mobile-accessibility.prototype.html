@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>True Count — table controls prototype</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f6f5f1;color:#182822;font:1rem/1.5 system-ui,sans-serif}main{max-width:72rem;margin:auto;padding:16px;overflow-wrap:anywhere}h1{font-size:1.8rem;line-height:1.2}h2{font-size:1.3rem}h3{font-size:1.1rem}p{max-width:65ch}button,input,select{font:inherit;min-height:48px;border:2px solid #52675d;border-radius:.4rem;padding:.5rem;background:#fff;color:#182822;max-width:100%}button{cursor:pointer;overflow-wrap:anywhere}button:hover{background:#e7eee9}button[aria-pressed=true]{background:#234f3d;color:#fff}button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:3px solid #8c3600;outline-offset:3px}label{display:block;font-weight:650}input,select{width:100%}.row{display:flex;gap:.65rem;flex-wrap:wrap;align-items:center}.panel{background:white;border:1px solid #708076;border-radius:.6rem;padding:16px;margin:1rem 0;min-width:0}.workspace{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr));gap:1rem}.workspace>.panel{margin:0}.table{background:#e2eee7;border:2px solid #52675d;padding:12px;border-radius:1rem}.targets{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8rem),1fr));gap:.75rem}.wide{grid-column:1/-1}.muted{color:#45584d}.tag{font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}.notice{border-left:.3rem solid #8c3600;padding-left:.8rem}dl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:.5rem}dt{font-weight:700}dd{margin:0;overflow-wrap:anywhere}ul{padding-left:1.2rem}li{margin-bottom:.7rem}.bet{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem;border-bottom:1px solid #a1ada5;padding:.6rem 0}.bet p{margin:0}#status{min-height:3rem;font-weight:650}#amount-help{margin-top:.4rem}.compact main{max-width:360px}.large{font-size:200%}[hidden]{display:none!important}details{margin:1rem 0}summary{cursor:pointer;min-height:48px;padding:.6rem}#walkthrough button{border-color:#234f3d}a{color:#14563c}fieldset{border:0;padding:0;min-width:0}legend{font-weight:700;margin-bottom:.5rem}
+@media(max-width:480px){dl{display:block}dd{margin-bottom:.6rem}}
+.large dl{display:block}.large dd{margin-bottom:.6rem}
+</style>
+<main>
+<p class="tag">Throwaway interaction prototype · proposed behavior</p>
+<h1>One session, two ways to place a bet</h1>
+<p>Can you select, edit, and inspect the same wagers through a graphical table and a readable selector, including on a narrow screen with large text? This demo uses a few fixed examples; it does not deal cards, run a game, or save data.</p>
+<div class="row"><button id="compact" aria-pressed="false">Narrow layout</button><button id="large" aria-pressed="false">200% demo text</button><button id="reset">Reset example</button></div>
+<p class="muted">The text toggle illustrates reflow. Native VoiceOver, TalkBack, switch control, display scaling, and maximum system text sizes still need testing on actual devices.</p>
+<section class="panel" aria-labelledby="walk-title">
+<h2 id="walk-title">Guided walkthroughs</h2>
+<div class="row" role="tablist" aria-label="Walkthroughs"><button role="tab" id="tab-equivalence" aria-controls="walkthrough" aria-selected="true" tabindex="0" data-scenario="equivalence">Same wager</button><button role="tab" id="tab-draft" aria-controls="walkthrough" aria-selected="false" tabindex="-1" data-scenario="draft">Keep a draft</button><button role="tab" id="tab-contract" aria-controls="walkthrough" aria-selected="false" tabindex="-1" data-scenario="contract">Committed wager</button></div>
+<div id="walkthrough" role="tabpanel" aria-labelledby="tab-equivalence"></div>
+</section>
+<section class="panel" aria-labelledby="state-title"><h2 id="state-title">Current session</h2><div id="state"></div></section>
+<div class="row"><label for="game">Example game</label><select id="game" style="width:auto"><option value="roulette">Roulette</option><option value="craps">Standard craps</option></select></div>
+<p class="muted">Changing example game resets this fixture. Changing presentation or resizing keeps the session and your draft.</p>
+<p id="status" role="status" aria-live="polite" aria-atomic="true">Ready. Choose a wager.</p>
+<div class="workspace">
+<section class="panel" aria-labelledby="choose-title"><h2 id="choose-title">Choose a wager</h2>
+<fieldset><legend>Presentation</legend><div class="row"><button id="view-table" aria-pressed="true">Graphical table</button><button id="view-selector" aria-pressed="false">Bet selector</button></div></fieldset>
+<div id="table-view"><p>Illustrative table regions. Selecting a region opens its wager; it does not spend funds.</p><div class="table"><div id="targets" class="targets"></div></div></div>
+<div id="selector-view" hidden><p>These are the same available wagers, named explicitly.</p><label for="target">Wager and numbers</label><select id="target"></select></div>
+<h3 id="selected-title"></h3>
+<form id="bet-form"><label for="amount">Total stake for this wager</label><input id="amount" type="text" inputmode="numeric" aria-describedby="amount-help"><p id="amount-help"></p><button id="save" type="submit">Set wager</button></form>
+</section>
+<section class="panel" aria-labelledby="bets-title"><h2 id="bets-title" tabindex="-1">Existing wagers</h2><p>Editing sets a wager's total stake. Removing a removable wager returns its stake to the available balance.</p><div id="bets"></div></section>
+</div>
+<details><summary>What this review can establish</summary><p>Whether selection, total-stake editing, resize preservation, and committed-wager explanations are understandable. This fixture has no outcomes, payouts, strategy coaching, or challenge scoring. It is not a full roulette/craps catalog, visual design, engine reference, or native accessibility certification.</p></details>
+</main>
+<script>
+const catalogs={roulette:[{id:'one',name:'Straight up — 1',step:1},{id:'split',name:'Split — 1 and 2',step:1},{id:'red',name:'Red — outside bet',step:1}],craps:[{id:'six',name:'Place 6',step:6},{id:'eight',name:'Place 8',step:6},{id:'pass',name:'Pass line — point 6 established',step:5,locked:true}]};
+function initial(game='roulette'){return{game,view:'table',selected:catalogs[game][0].id,draft:game==='roulette'?'10':'12',balance:game==='roulette'?100:90,bets:game==='roulette'?[]:[{id:'pass',amount:10}],message:'Ready. Choose a wager.'};}
+function reduce(s,a){
+ if(a.type==='reset')return initial(a.game||s.game);
+ if(a.type==='view')return{...s,view:a.view,message:'Presentation changed. Session and draft preserved.'};
+ if(a.type==='draft')return{...s,draft:a.value};
+ if(a.type==='select'){const item=catalogs[s.game].find(x=>x.id===a.id),bet=s.bets.find(x=>x.id===a.id);return{...s,selected:a.id,draft:String(bet?.amount||item.step*(s.game==='roulette'?10:2)),message:'Selected '+item.name+'. No wager changed.'};}
+ if(a.type==='save'){
+ const item=catalogs[s.game].find(x=>x.id===s.selected),old=s.bets.find(x=>x.id===s.selected)?.amount||0,n=Number(s.draft);
+ if(item.locked)return{...s,message:'The pass-line stake is committed until settlement. It cannot be changed or removed in this example.'};
+ if(!/^\d+$/.test(s.draft)||!Number.isSafeInteger(n)||n<item.step||n%item.step)return{...s,message:'Enter a positive whole-number stake in increments of '+item.step+'. Your draft is preserved.'};
+ if(n>s.balance+old)return{...s,message:'Insufficient available funds. Existing wagers and your draft are unchanged.'};
+ return{...s,balance:s.balance+old-n,bets:[...s.bets.filter(x=>x.id!==s.selected),{id:s.selected,amount:n}],message:item.name+' total stake set to '+n+'.'};
+ }
+ if(a.type==='remove'){const item=catalogs[s.game].find(x=>x.id===a.id),bet=s.bets.find(x=>x.id===a.id);if(item.locked)return{...s,message:'Pass line cannot be removed after a point is established. The 10 stake remains committed until settlement.'};if(!bet)return s;return{...s,balance:s.balance+bet.amount,bets:s.bets.filter(x=>x.id!==a.id),message:item.name+' removed. '+bet.amount+' returned to available funds.'};}
+ return s;
+}
+const scenarios={
+ equivalence:{title:'Select a split on the table, then edit the same wager in the selector.',game:'roulette',steps:[['Select split 1 and 2',{type:'select',id:'split'}],['Set its total stake to 10',{type:'save'}],['Use bet selector',{type:'view',view:'selector'}],['Enter a total stake of 15',{type:'draft',value:'15'}],['Save the new total',{type:'save'}]]},
+ draft:{title:'Type an amount, then change layout and presentation. The unsubmitted amount stays intact.',game:'craps',steps:[['Select Place 8',{type:'select',id:'eight'}],['Enter 24 without saving',{type:'draft',value:'24'}],['Try narrow layout and 200% text',{type:'layout'}],['Use bet selector',{type:'view',view:'selector'}],['Set the preserved wager',{type:'save'}]]},
+ contract:{title:'A pass-line wager is already committed to point 6. Inspect why it cannot be removed; a Place 6 wager is removable.',game:'craps',steps:[['Explain why pass line cannot be removed',{type:'remove',id:'pass'}],['Select Place 6',{type:'select',id:'six'}],['Set Place 6 to 12',{type:'save'}],['Remove Place 6',{type:'remove',id:'six'}]]}
+};
+let state=initial(),scenario='equivalence',step=0;
+const $=id=>document.getElementById(id);
+function summary(){const item=catalogs[state.game].find(x=>x.id===state.selected);$('state').innerHTML=`<dl><dt>Game</dt><dd>${state.game==='craps'?'Standard craps · point 6':'Roulette · betting open'}</dd><dt>Available</dt><dd>${state.balance}</dd><dt>Staked</dt><dd>${state.bets.reduce((n,b)=>n+b.amount,0)}</dd><dt>Selected wager</dt><dd>${item.name}</dd><dt>Draft total</dt><dd id="draft-summary"></dd></dl>`;$('draft-summary').textContent=state.draft||'Empty';}
+function render(){
+ const focus=document.activeElement?.id,catalog=catalogs[state.game],item=catalog.find(x=>x.id===state.selected);
+ summary();$('status').textContent=state.message;$('game').value=state.game;
+ $('table-view').hidden=state.view!=='table';$('selector-view').hidden=state.view!=='selector';
+ $('view-table').setAttribute('aria-pressed',state.view==='table');$('view-selector').setAttribute('aria-pressed',state.view==='selector');
+ $('targets').innerHTML=catalog.map(x=>`<button id="region-${x.id}" data-select="${x.id}" aria-pressed="${x.id===state.selected}">${x.name}${state.bets.some(b=>b.id===x.id)?' · stake '+state.bets.find(b=>b.id===x.id).amount:''}</button>`).join('');
+ $('target').innerHTML=catalog.map(x=>`<option value="${x.id}">${x.name}</option>`).join('');$('target').value=state.selected;
+ $('selected-title').textContent=item.name;$('amount').value=state.draft;$('amount').readOnly=!!item.locked;
+ $('amount-help').textContent=item.locked?'This stake is committed until settlement. It cannot be changed here.':'Whole-number increments of '+item.step+'. Enter the total, not an additional amount.';
+ $('save').textContent=item.locked?'Explain committed stake':'Set wager';
+ $('bets').innerHTML=state.bets.length?state.bets.map(b=>{const x=catalog.find(c=>c.id===b.id);return`<div class="bet"><p><strong>${x.name}</strong><br>Stake ${b.amount} · ${x.locked?'Committed':'Removable'}${state.game==='craps'&&!x.locked?' · Working':''}</p><div class="row"><button id="edit-${b.id}" data-select="${b.id}" aria-label="Inspect or edit ${x.name}">Inspect / edit</button><button id="remove-${b.id}" data-remove="${b.id}" aria-label="${x.locked?'Why cannot I remove':'Remove'} ${x.name}">${x.locked?'Why locked?':'Remove'}</button></div></div>`;}).join(''):'<p>No wagers yet.</p>';
+ if(focus&&$(focus)&&!$(focus).closest('[hidden]'))$(focus).focus({preventScroll:true});
+}
+function dispatch(a){state=reduce(state,a);render();}
+function setLayout(){document.documentElement.classList.add('compact','large');$('compact').setAttribute('aria-pressed','true');$('large').setAttribute('aria-pressed','true');}
+function walkthrough(){const s=scenarios[scenario];$('walkthrough').setAttribute('aria-labelledby','tab-'+scenario);$('walkthrough').innerHTML=`<p>${s.title}</p><p>${step===s.steps.length?'Walkthrough complete. Explore the controls below or select another walkthrough.':'Step '+(step+1)+' of '+s.steps.length}</p>${step<s.steps.length?'<button id="next-step">'+s.steps[step][0]+'</button>':''}`;document.querySelectorAll('[data-scenario]').forEach(el=>{const active=el.dataset.scenario===scenario;el.setAttribute('aria-selected',active);el.tabIndex=active?0:-1;});}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.select)dispatch({type:'select',id:b.dataset.select});
+ if(b.dataset.remove){const wasFocused=document.activeElement===b;dispatch({type:'remove',id:b.dataset.remove});if(wasFocused&&!$(b.id))$('bets-title').focus();}
+ if(b.dataset.scenario){scenario=b.dataset.scenario;step=0;dispatch({type:'reset',game:scenarios[scenario].game});walkthrough();}
+ if(b.id==='next-step'){const a=scenarios[scenario].steps[step][1];if(a.type==='layout')setLayout();else dispatch(a);step++;walkthrough();if($('next-step'))$('next-step').focus();else $('tab-'+scenario).focus();}
+});
+document.querySelector('[role=tablist]').addEventListener('keydown',e=>{const tabs=[...document.querySelectorAll('[role=tab]')],i=tabs.indexOf(document.activeElement);if(i<0)return;let n;if(e.key==='ArrowRight')n=(i+1)%tabs.length;if(e.key==='ArrowLeft')n=(i+tabs.length-1)%tabs.length;if(e.key==='Home')n=0;if(e.key==='End')n=tabs.length-1;if(n!==undefined){e.preventDefault();tabs[n].click();tabs[n].focus();}});
+for(const mode of ['table','selector'])$('view-'+mode).onclick=()=>dispatch({type:'view',view:mode});
+for(const id of ['compact','large'])$(id).onclick=()=>{$(id).setAttribute('aria-pressed',String(document.documentElement.classList.toggle(id)));};
+$('target').onchange=e=>dispatch({type:'select',id:e.target.value});$('game').onchange=e=>dispatch({type:'reset',game:e.target.value});
+$('amount').oninput=e=>{state=reduce(state,{type:'draft',value:e.target.value});summary();};
+$('bet-form').onsubmit=e=>{e.preventDefault();dispatch({type:'save'});};$('reset').onclick=()=>{step=0;dispatch({type:'reset',game:scenarios[scenario].game});walkthrough();};
+render();walkthrough();
+</script>
+</html>
