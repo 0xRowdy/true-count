@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>True Count — mobile visual direction &amp; navigation prototype</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eceae4;color:#182822;font:1rem/1.5 system-ui,sans-serif;padding-bottom:5rem}
+.intro{max-width:60rem;margin:0 auto;padding:16px 16px 0}
+.tag{font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#45584d}
+.intro p{max-width:70ch}
+.intro ul{max-width:70ch}
+
+/* harness controls, visually distinct from the design being reviewed */
+.harness{max-width:60rem;margin:0 auto;padding:8px 16px;display:flex;flex-wrap:wrap;gap:.5rem 1.2rem;align-items:center;font-size:.85rem}
+.harness fieldset{border:0;padding:0;margin:0;display:flex;gap:.4rem;align-items:center}
+.harness legend{font-weight:700;float:left;margin-right:.4rem}
+.harness button{font:inherit;border:2px solid #52675d;background:#fff;border-radius:1rem;padding:.25rem .7rem;cursor:pointer}
+.harness button[aria-pressed=true]{background:#234f3d;color:#fff;border-color:#234f3d}
+.harness button:focus-visible{outline:3px solid #8c3600;outline-offset:2px}
+
+.stage{display:flex;justify-content:center;padding:1.5rem 1rem 3rem;overflow:auto}
+.device{--fg:#182822;position:relative;overflow:hidden;border:10px solid #111;border-radius:2rem;background:var(--bg);color:var(--fg);box-shadow:0 20px 40px rgba(0,0,0,.28);display:flex;font-size:.92rem}
+.device.portrait{width:390px;height:790px;flex-direction:column}
+.device.landscape{width:790px;height:390px;flex-direction:column}
+.device.tablet{width:820px;height:920px;flex-direction:column}
+.large-text .device{font-size:1.3rem}
+
+.app-topbar{flex:none;display:flex;align-items:center;gap:.6rem;padding:.7rem .9rem;border-bottom:1px solid rgba(0,0,0,.12)}
+.app-topbar h2{margin:0;font-size:1.05em;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.icon-btn{width:2.2rem;height:2.2rem;border-radius:50%;border:1px solid rgba(0,0,0,.2);background:rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+
+.app-body-row{flex:1;display:flex;min-height:0}
+.app-content{flex:1;overflow:auto;padding:.9rem}
+.app-content h1{font-size:1.3em;margin:.2rem 0 .6rem}
+.app-content h3{font-size:1em;margin:1rem 0 .4rem}
+.card{background:rgba(255,255,255,.9);border:1px solid rgba(0,0,0,.12);border-radius:.9rem;padding:.8rem;margin-bottom:.7rem}
+.pill{display:inline-block;border-radius:1rem;padding:.15rem .6rem;font-size:.8em;font-weight:700;background:rgba(0,0,0,.08)}
+.muted{opacity:.7;font-size:.85em}
+.row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem}
+.btn{font:inherit;border:2px solid var(--accent);background:var(--accent);color:#fff;border-radius:.6rem;padding:.5rem .8rem;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.toggle-group{display:flex;border:2px solid var(--accent);border-radius:.6rem;overflow:hidden;width:fit-content}
+.toggle-group button{font:inherit;border:0;background:transparent;color:var(--accent);padding:.4rem .8rem;cursor:pointer}
+.toggle-group button[aria-pressed=true]{background:var(--accent);color:#fff}
+.spot{border:2px dashed var(--accent);border-radius:.5rem;padding:.5rem;text-align:center;font-size:.85em;cursor:pointer;background:rgba(255,255,255,.5)}
+.hidden-count{letter-spacing:.3em;font-size:1.4em;font-weight:700;filter:blur(.02px)}
+.list-row{display:flex;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.1);padding:.5rem 0;gap:.5rem}
+.carousel{display:flex;gap:.6rem;overflow-x:auto;padding-bottom:.3rem;margin-bottom:.8rem}
+.carousel .card{min-width:9.5rem;flex:none;margin-bottom:0}
+.session-strip{flex:none;padding:.5rem .9rem;font-size:.85em;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:.5rem}
+
+/* Variant A: Tab Bar Hub */
+.device[data-variant=A]{--bg:#f6f5f1;--accent:#1b6b4a}
+.tabbar{flex:none;display:flex;border-top:1px solid rgba(0,0,0,.12);background:#fff}
+.tabbar button{flex:1;font:inherit;border:0;background:transparent;padding:.6rem .2rem;font-size:.78em;color:#45584d;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.15rem}
+.tabbar button[aria-current=true]{color:var(--accent);font-weight:700}
+.dot{width:.6rem;height:.6rem;border-radius:50%;background:currentColor}
+
+/* Variant B: Hub & Rail */
+.device[data-variant=B]{--bg:#181615;--fg:#f1ece4;--accent:#c98a2c}
+.device[data-variant=B] .card{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12)}
+.device[data-variant=B] .icon-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
+.device[data-variant=B] .toggle-group button{color:#f1ece4}
+.rail{flex:none;display:flex;background:rgba(255,255,255,.05);border-right:1px solid rgba(255,255,255,.12)}
+.rail.vertical{flex-direction:column;width:4.2rem;padding-top:.6rem}
+.rail.horizontal{flex-direction:row;width:100%;border-right:0;border-bottom:1px solid rgba(255,255,255,.12);overflow-x:auto}
+.rail button{font:inherit;border:0;background:transparent;color:#c9c2b6;padding:.6rem;font-size:.72em;display:flex;flex-direction:column;align-items:center;gap:.2rem;cursor:pointer;flex:none;width:100%}
+.rail.horizontal button{width:auto;padding:.5rem .9rem}
+.rail button[aria-current=true]{color:var(--accent)}
+
+/* Variant C: Game-First Launcher */
+.device[data-variant=C]{--bg:#ffffff;--accent:#0a3d62}
+.device[data-variant=C] .app-topbar{border-bottom:0}
+.launcher-stack{display:flex;flex-direction:column;gap:.6rem;height:100%}
+.game-card{flex:1;border-radius:1rem;padding:1rem;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;cursor:pointer;min-height:5.5rem}
+.game-card h2{margin:0;font-size:1.4em}
+.menu-panel{position:absolute;inset:0;background:rgba(255,255,255,.98);padding:1rem;z-index:5}
+.menu-panel h2{margin-top:0}
+.menu-panel button.link{display:block;width:100%;text-align:left;font:inherit;border:0;background:transparent;padding:.7rem 0;border-bottom:1px solid rgba(0,0,0,.08);cursor:pointer}
+.footnote{flex:none;font-size:.78em;padding:.4rem .9rem;opacity:.75;border-top:1px dashed rgba(0,0,0,.15)}
+
+/* floating variant switcher — mandated by the prototype skill, kept visually apart from the reviewed UI */
+#switcher{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);display:flex;align-items:center;gap:.6rem;background:#111;color:#fff;border-radius:2rem;padding:.4rem .6rem;box-shadow:0 6px 20px rgba(0,0,0,.35);z-index:20;font:600 .9rem system-ui,sans-serif}
+#switcher button{font:inherit;border:0;background:#2a2a2a;color:#fff;border-radius:50%;width:2.1rem;height:2.1rem;cursor:pointer}
+#switcher button:hover{background:#3a3a3a}
+#switcher span{min-width:14rem;text-align:center}
+</style>
+
+<div class="intro">
+<p class="tag">Throwaway visual/navigation prototype · issue #30</p>
+<h1>Mobile visual direction and core navigation</h1>
+<p>Three structurally different visual systems and top-level navigations for reaching blackjack, standard craps, roulette, counting challenges, strategy creation/community, and saved records. Flip variants with the floating switcher (bottom of screen), pick a device size, and step through the six representative screens. Nothing here saves data, deals cards, or runs a real session — labels like "session active" and "hidden count" are fixed examples to show the intended behavior, not a working game.</p>
+<ul class="muted">
+<li>Check's running count stays visually hidden in every screen and state — never rendered, even as placeholder digits.</li>
+<li>Every screen includes a note on what happens to an in-progress session when you navigate away.</li>
+</ul>
+</div>
+
+<div class="harness" aria-label="Prototype controls (not part of the reviewed design)">
+<fieldset><legend>Screen</legend><div class="row" id="screen-controls"></div></fieldset>
+<fieldset><legend>Device</legend><div class="row" id="device-controls"></div></fieldset>
+<fieldset><legend>Text</legend><div class="row" id="text-controls"></div></fieldset>
+</div>
+
+<div class="stage"><div id="device-root"></div></div>
+
+<div id="switcher" role="group" aria-label="Visual system variant">
+<button id="prev" aria-label="Previous variant">◀</button>
+<span id="variant-label"></span>
+<button id="next" aria-label="Next variant">▶</button>
+</div>
+
+<script>
+const VARIANTS = {
+  A: { key:'A', name:'Tab Bar Hub', chrome:'tabs',
+       desc:'Bottom tab bar (Play · Challenges · Strategies · Community · Records); card-grid home.' },
+  B: { key:'B', name:'Hub & Rail', chrome:'rail',
+       desc:'Icon rail (sidebar on landscape/tablet, top strip on phone portrait); single-scroll carousel home.' },
+  C: { key:'C', name:'Game-First Launcher', chrome:'menu',
+       desc:'No persistent nav bar; full-bleed game picker as home, everything else reached via a menu.' }
+};
+const SCREENS = ['home','table','challenge','strategy','community','records'];
+const SCREEN_LABEL = {home:'Home', table:'Table & bet selector', challenge:'Counting challenge',
+  strategy:'Strategy editor', community:'Community detail', records:'Saved records'};
+const DEVICES = ['portrait','landscape','tablet'];
+const DEVICE_LABEL = {portrait:'Phone · portrait', landscape:'Phone · landscape', tablet:'Tablet'};
+
+const params = new URLSearchParams(location.search);
+let state = {
+  variant: VARIANTS[params.get('variant')] ? params.get('variant') : 'A',
+  screen: SCREENS.includes(params.get('screen')) ? params.get('screen') : 'home',
+  device: DEVICES.includes(params.get('device')) ? params.get('device') : 'portrait',
+  large: params.get('text') === 'large',
+  menuOpen: false,
+  tableView: 'graphic'
+};
+
+function syncUrl(){
+  const p = new URLSearchParams();
+  p.set('variant', state.variant); p.set('screen', state.screen); p.set('device', state.device);
+  if (state.large) p.set('text','large');
+  history.replaceState(null, '', '?' + p.toString());
+}
+
+const SESSION = { game:'Blackjack', detail:'Shoe 3 · Hand 12', bankroll:'$184' };
+
+function resumeBanner(){
+  return `<div class="card row" style="justify-content:space-between">
+    <div><strong>Continue: ${SESSION.game}</strong><div class="muted">${SESSION.detail} · Bankroll ${SESSION.bankroll}</div></div>
+    <button class="btn">Resume</button></div>`;
+}
+
+function screenHome(v){
+  if (v.key === 'A') return `
+    ${resumeBanner()}
+    <h3>Play a game</h3>
+    <div class="grid3">
+      <div class="card" style="text-align:center"><strong>Blackjack</strong><p class="muted">Shoe-based, Hi-Lo ready</p><button class="btn ghost">Play</button></div>
+      <div class="card" style="text-align:center"><strong>Standard craps</strong><p class="muted">5 strategies</p><button class="btn ghost">Play</button></div>
+      <div class="card" style="text-align:center"><strong>Roulette</strong><p class="muted">5 strategies</p><button class="btn ghost">Play</button></div>
+    </div>
+    <h3>Today</h3>
+    <div class="row">
+      <div class="card" style="flex:1"><strong>Check streak</strong><div class="muted">7 in a row</div></div>
+      <div class="card" style="flex:1"><strong>Practice funds</strong><div class="muted">$32 of $50 left today</div></div>
+    </div>`;
+  if (v.key === 'B') return `
+    <h3>Continue</h3><div class="carousel">${resumeBanner()}</div>
+    <h3>Games</h3><div class="carousel">
+      <div class="card"><strong>Blackjack</strong></div><div class="card"><strong>Standard craps</strong></div><div class="card"><strong>Roulette</strong></div></div>
+    <h3>Today's challenge</h3><div class="carousel"><div class="card"><strong>Check · Table count</strong><div class="muted">Card 24 of 40</div></div></div>
+    <h3>From the community</h3><div class="carousel">
+      <div class="card"><strong>Conservative Hi-Lo Ramp</strong><div class="muted">★4.6 · 128 runs</div></div>
+      <div class="card"><strong>Iron Cross variant</strong><div class="muted">★4.2 · 61 runs</div></div></div>
+    <h3>Your records</h3><div class="carousel"><div class="card"><strong>42 sessions</strong><div class="muted">+$310 net (practice)</div></div></div>`;
+  return `
+    <div class="session-strip" style="background:rgba(10,61,98,.08);border-radius:.6rem;margin-bottom:.7rem">
+      <span>▶ ${SESSION.game} in progress — ${SESSION.detail}</span><button class="btn" style="padding:.2rem .6rem">Resume</button></div>
+    <div class="launcher-stack">
+      <div class="game-card" style="background:#0a3d62"><h2>Blackjack</h2><span class="muted" style="color:#dce8f2">Shoe-based · Hi-Lo</span></div>
+      <div class="game-card" style="background:#8c3600"><h2>Standard craps</h2><span class="muted" style="color:#f2e2d6">5 strategies</span></div>
+      <div class="game-card" style="background:#234f3d"><h2>Roulette</h2><span class="muted" style="color:#dcece3">5 strategies</span></div>
+    </div>
+    <p class="muted" style="text-align:center;margin-top:.6rem">Community · Records</p>`;
+}
+
+function screenTable(v){
+  const isGraphic = state.tableView === 'graphic';
+  return `
+    <div class="pill">Blackjack · Table 1 · $10–$500</div>
+    <div class="card row" style="justify-content:space-between;margin-top:.6rem">
+      <span>Session active — ${SESSION.detail}</span><span class="muted">Bankroll ${SESSION.bankroll}</span></div>
+    <div class="toggle-group" style="margin:.7rem 0">
+      <button aria-pressed="${isGraphic}" data-action="table-view" data-value="graphic">Graphical table</button>
+      <button aria-pressed="${!isGraphic}" data-action="table-view" data-value="selector">Bet selector</button>
+    </div>
+    ${isGraphic ? `
+    <div class="grid3">
+      <div class="spot">Player hand</div><div class="spot">Insurance</div><div class="spot">Side bet</div>
+      <div class="spot">Split</div><div class="spot">Double</div><div class="spot">Dealer upcard</div>
+    </div>` : `
+    <div class="list-row"><span>Main wager</span><span>$25</span></div>
+    <div class="list-row"><span>Insurance</span><span>Not placed</span></div>
+    <div class="list-row"><span>21+3 side bet</span><span>$5</span></div>`}
+    <p class="muted" style="margin-top:.8rem">Leaving this screen pauses the hand. Returning restores the same bankroll, cards, and open bet slip — nothing resets or rescores.</p>`;
+}
+
+function screenChallenge(){
+  return `
+    <div class="row" style="margin-bottom:.6rem">
+      <span class="pill">Learn</span><span class="pill" style="background:var(--accent);color:#fff">Check</span>
+      <span class="pill">Observe</span><span class="pill">Play</span></div>
+    <div class="card" style="text-align:center">
+      <div class="muted">Running count</div>
+      <div class="hidden-count" aria-label="Hidden until you submit your answer">••••</div>
+      <p class="muted">Hidden until you submit your answer</p>
+      <input type="text" inputmode="numeric" placeholder="Your count" style="font:inherit;padding:.4rem;width:8rem;text-align:center" disabled>
+      <div style="margin-top:.5rem"><button class="btn">Submit</button></div>
+    </div>
+    <p class="muted">Card 24 of 40 dealt</p>
+    <div class="card"><strong>Best streak</strong><div class="muted">14 correct in a row</div></div>
+    <p class="muted">Switching screens keeps this deferred answer hidden; it is never shown in a preview, label, or notification.</p>`;
+}
+
+function screenStrategy(){
+  return `
+    <h1 style="font-size:1.1em">Draft: My Hi-Lo Ramp</h1>
+    <div class="pill">Revision 4 · Draft, not published</div>
+    <h3>Rules</h3>
+    <div class="card">Trigger: true count ≥ +2 → Action: bet 3 units → Fallback: table max reached, use table max</div>
+    <div class="card">Trigger: true count ≥ +4 → Action: bet 5 units</div>
+    <div class="card" style="border-color:#8c3600;background:rgba(140,54,0,.08)">
+      ⚠ Overlaps rule 1 at true count +2 to +3 — the earlier rule wins; this is shown as a fallback, not a silent override.</div>
+    <button class="btn ghost">Add rule</button>`;
+}
+
+function screenCommunity(){
+  return `
+    <h1 style="font-size:1.1em">Conservative Hi-Lo Ramp</h1>
+    <div class="muted">by playerX · revision 3</div>
+    <div class="card row" style="justify-content:space-between">
+      <span>★4.6 · 128 simulated runs</span><span class="muted">±0.4% SE</span></div>
+    <div class="row" style="margin:.6rem 0">
+      <button class="btn">Remix</button><button class="btn ghost">Save</button><button class="btn ghost">Report</button></div>
+    <p class="muted">Reports are reviewed within 48 hours; removed content stays attributed to a deleted-account placeholder, not silently erased.</p>`;
+}
+
+function screenRecords(){
+  return `
+    <div class="toggle-group" style="margin-bottom:.7rem">
+      <button aria-pressed="true">Practice</button><button aria-pressed="false">Casino sessions</button></div>
+    <div class="list-row"><span>Sep 5 · Blackjack</span><span>+$40 · 38m</span></div>
+    <div class="list-row"><span>Sep 3 · Roulette</span><span>−$15 · 22m</span></div>
+    <div class="list-row"><span>Aug 30 · Standard craps</span><span>+$22 · 51m</span></div>
+    <div class="card" style="margin-top:.7rem"><strong>Lifetime</strong><div class="muted">42 sessions · +$310 net (practice only)</div></div>`;
+}
+
+const SCREEN_RENDER = { home:screenHome, table:screenTable, challenge:screenChallenge,
+  strategy:screenStrategy, community:screenCommunity, records:screenRecords };
+
+function chromeTabs(v){
+  const tabs = ['home','table','challenge','community','records'].filter(s => SCREENS.includes(s));
+  return `<div class="tabbar" role="tablist" aria-label="Primary">
+    ${tabs.map(s => `<button role="tab" aria-current="${state.screen===s}" data-action="screen" data-value="${s}">
+      <span class="dot"></span>${SCREEN_LABEL[s]==='Table & bet selector'?'Play':SCREEN_LABEL[s].split(' ')[0]}</button>`).join('')}
+  </div>`;
+}
+
+function chromeRail(v, orientation){
+  const items = ['home','table','challenge','strategy','community','records'];
+  const horizontal = orientation === 'portrait';
+  return `<nav class="rail ${horizontal?'horizontal':'vertical'}" aria-label="Primary">
+    ${items.map(s => `<button aria-current="${state.screen===s}" data-action="screen" data-value="${s}">${SCREEN_LABEL[s]}</button>`).join('')}
+  </nav>`;
+}
+
+function chromeMenu(v){
+  if (!state.menuOpen) return '';
+  const items = ['home','community','records'];
+  return `<div class="menu-panel">
+    <h2>Menu</h2>
+    ${items.map(s => `<button class="link" data-action="screen" data-value="${s}">${SCREEN_LABEL[s]}</button>`).join('')}
+    <button class="link" data-action="close-menu">Close</button></div>`;
+}
+
+function renderDevice(){
+  const v = VARIANTS[state.variant];
+  const content = SCREEN_RENDER[state.screen](v);
+  const title = SCREEN_LABEL[state.screen];
+  let inner = '';
+  if (v.chrome === 'tabs') {
+    inner = `
+      <div class="app-topbar"><h2>${title}</h2><div class="icon-btn">＋</div></div>
+      <div class="app-body-row"><div class="app-content">${content}</div></div>
+      ${chromeTabs(v)}`;
+  } else if (v.chrome === 'rail') {
+    const horizontal = state.device === 'portrait';
+    inner = horizontal
+      ? `${chromeRail(v,'portrait')}
+         <div class="app-topbar"><h2>${title}</h2><div class="icon-btn">🔍</div></div>
+         <div class="app-body-row"><div class="app-content">${content}</div></div>`
+      : `<div class="app-body-row">${chromeRail(v,'landscape')}
+           <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+             <div class="app-topbar"><h2>${title}</h2><div class="icon-btn">🔍</div></div>
+             <div class="app-content">${content}</div>
+           </div></div>`;
+  } else {
+    inner = `
+      <div class="app-topbar"><h2>True Count</h2><div class="icon-btn" data-action="toggle-menu">☰</div></div>
+      <div class="app-body-row"><div class="app-content">${content}</div></div>
+      ${chromeMenu(v)}`;
+  }
+  return `<div class="device ${state.device}" data-variant="${v.key}">${inner}</div>`;
+}
+
+function renderControls(){
+  document.getElementById('screen-controls').innerHTML = SCREENS.map(s =>
+    `<button aria-pressed="${state.screen===s}" data-action="screen" data-value="${s}">${SCREEN_LABEL[s]}</button>`).join('');
+  document.getElementById('device-controls').innerHTML = DEVICES.map(d =>
+    `<button aria-pressed="${state.device===d}" data-action="device" data-value="${d}">${DEVICE_LABEL[d]}</button>`).join('');
+  document.getElementById('text-controls').innerHTML =
+    `<button aria-pressed="${!state.large}" data-action="text" data-value="false">Standard</button>
+     <button aria-pressed="${state.large}" data-action="text" data-value="true">Large</button>`;
+}
+
+function render(){
+  document.body.classList.toggle('large-text', state.large);
+  document.getElementById('device-root').innerHTML = renderDevice();
+  renderControls();
+  const v = VARIANTS[state.variant];
+  document.getElementById('variant-label').textContent = `${v.key} — ${v.name}`;
+  syncUrl();
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-action]');
+  if (!b) return;
+  const action = b.dataset.action, value = b.dataset.value;
+  if (action === 'screen') state.screen = value;
+  if (action === 'device') state.device = value;
+  if (action === 'text') state.large = value === 'true';
+  if (action === 'table-view') state.tableView = value;
+  if (action === 'toggle-menu') state.menuOpen = !state.menuOpen;
+  if (action === 'close-menu') state.menuOpen = false;
+  render();
+});
+
+function cycleVariant(dir){
+  const keys = Object.keys(VARIANTS);
+  const i = keys.indexOf(state.variant);
+  state.variant = keys[(i + dir + keys.length) % keys.length];
+  state.menuOpen = false;
+  render();
+}
+document.getElementById('prev').onclick = () => cycleVariant(-1);
+document.getElementById('next').onclick = () => cycleVariant(1);
+document.addEventListener('keydown', e => {
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) return;
+  if (e.key === 'ArrowLeft') cycleVariant(-1);
+  if (e.key === 'ArrowRight') cycleVariant(1);
+});
+
+render();
+</script>
+</html>
