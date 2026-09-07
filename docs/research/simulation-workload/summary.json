@@ -1,0 +1,78 @@
+{
+  "roulette-flat-single": {
+    "samples": 3,
+    "sessionsOrTapesPerSample": 100000,
+    "medianMs": 0.061728854660000006,
+    "minMs": 0.06125474708,
+    "maxMs": 0.06182744482,
+    "tailMean": 0.0,
+    "tailP95": 0,
+    "tailMax": 0,
+    "profileSeconds": 6.172885466,
+    "cloudRunOneJobK1": 0.0012000000000000001,
+    "fargateOneJobK1": 0.0008228399999999999
+  },
+  "roulette-flat-double": {
+    "samples": 3,
+    "sessionsOrTapesPerSample": 100000,
+    "medianMs": 0.061304324859999995,
+    "minMs": 0.06085438607,
+    "maxMs": 0.06146800357,
+    "tailMean": 0.0,
+    "tailP95": 0,
+    "tailMax": 0,
+    "profileSeconds": 6.130432486,
+    "cloudRunOneJobK1": 0.0012000000000000001,
+    "fargateOneJobK1": 0.0008228399999999999
+  },
+  "roulette-envelope-small": {
+    "samples": 3,
+    "sessionsOrTapesPerSample": 200,
+    "medianMs": 24.94335649,
+    "minMs": 24.879060675,
+    "maxMs": 25.10072138,
+    "tailMean": 0.0,
+    "tailP95": 0,
+    "tailMax": 0,
+    "profileSeconds": 2494.3356489999996,
+    "cloudRunOneJobK1": 0.04988800000000001,
+    "fargateOneJobK1": 0.03421643
+  },
+  "roulette-envelope-wide": {
+    "samples": 3,
+    "sessionsOrTapesPerSample": 10,
+    "medianMs": 867.8388404,
+    "minMs": 864.6964542,
+    "maxMs": 873.6036540000001,
+    "tailMean": 0.0,
+    "tailP95": 0,
+    "tailMax": 0,
+    "profileSeconds": 86783.88403999999,
+    "cloudRunOneJobK1": 1.735678,
+    "fargateOneJobK1": 1.1901557759999999
+  },
+  "craps-pass": {
+    "samples": 3,
+    "sessionsOrTapesPerSample": 100000,
+    "medianMs": 0.07972718598,
+    "minMs": 0.07971111932000001,
+    "maxMs": 0.07977301604999999,
+    "tailMean": 2.53548,
+    "tailP95": 9,
+    "tailMax": 32,
+    "profileSeconds": 7.972718598,
+    "cloudRunOneJobK1": 0.0012000000000000001,
+    "fargateOneJobK1": 0.0008228399999999999
+  },
+  "craps-forced-tail": {
+    "samples": 3,
+    "sessionsOrTapesPerSample": 2000,
+    "medianMs": 1.3180816305,
+    "minMs": 1.3130483635,
+    "maxMs": 1.3517610565,
+    "tailMean": 10001.0,
+    "tailP95": 10001,
+    "tailMax": 10001,
+    "microsecondsPerTapeRoll": 0.13179498355164485
+  }
+}
