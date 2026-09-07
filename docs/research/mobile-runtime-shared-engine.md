@@ -1,6 +1,6 @@
 # Mobile runtime and shared engine feasibility
 
-Research date: 2026-09-06. Evidence for [research #24](https://github.com/0xRowdy/true-count/issues/24), informing [architecture #16](https://github.com/0xRowdy/true-count/issues/16). This note establishes documented capabilities and implementation constraints; it does not certify game correctness, recovery, or performance. Recommendations remain proposals until accepted in the architecture decision.
+Research date: 2026-09-06. Evidence for [Mobile runtime and shared engine feasibility](https://github.com/0xRowdy/true-count/issues/24), informing [Mobile platform and shared game-engine architecture](https://github.com/0xRowdy/true-count/issues/16). This note establishes documented capabilities and implementation constraints; it does not certify game correctness, recovery, or performance. Recommendations remain proposals until accepted in the architecture decision.
 
 ## Decision implication
 
